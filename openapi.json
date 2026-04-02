@@ -115,14 +115,14 @@
     "/api/recipes": {
       "post": {
         "tags": ["Recipe"],
-        "summary": "레시피 등록 (JWT 있으면 user_id, 없으면 1)",
+        "summary": "레시피 등록 (Authorization Bearer에 로그인 JWT — 없으면 user_id 1)",
         "parameters": [
           {
             "name": "Authorization",
             "in": "header",
             "required": false,
             "schema": { "type": "string" },
-            "description": "Bearer <login JWT>"
+            "description": "Bearer <token> — 프론트는 localStorage 등에서 읽어 헤더로 전달"
           }
         ],
         "requestBody": {
@@ -134,8 +134,7 @@
                 "properties": {
                   "raw_text": { "type": "string" },
                   "refined_text": { "type": "string" },
-                  "audio_url": { "type": "string" },
-                  "jwt": { "type": "string", "description": "선택. Bearer 대신 body로 토큰" }
+                  "audio_url": { "type": "string" }
                 }
               }
             }
