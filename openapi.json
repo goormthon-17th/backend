@@ -113,6 +113,16 @@
       }
     },
     "/api/recipes": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "레시피 목록 최대 20개 (최신순, recipe_name은 refined_text에서 파생)",
+        "responses": {
+          "200": {
+            "description": "ok, recipes[] (최대 20건) — id, recipe_name, created_at{year,month,day}, like_count, refined_text"
+          },
+          "503": { "description": "DB 미설정" }
+        }
+      },
       "post": {
         "tags": ["Recipe"],
         "security": [{ "bearerAuth": [] }],
@@ -152,7 +162,7 @@
       "post": {
         "tags": ["Recipe"],
         "security": [{ "bearerAuth": [] }],
-        "summary": "레시피 좋아요 (JWT 없으면 user_id 1, 중복 시 alreadyLiked)",
+        "summary": "레시피 좋아요 토글 (JWT 없으면 user_id 1 — 켜짐 201 liked true, 꺼짐 200 liked false)",
         "parameters": [
           {
             "name": "recipeId",
@@ -169,8 +179,8 @@
           }
         ],
         "responses": {
-          "201": { "description": "좋아요 반영 — like_count 증가" },
-          "200": { "description": "이미 좋아요한 경우 (alreadyLiked)" },
+          "201": { "description": "좋아요 켬 — liked true, like_count 증가" },
+          "200": { "description": "좋아요 끔 — liked false, like_count 감소" },
           "400": { "description": "잘못된 recipeId / user FK" },
           "404": { "description": "레시피 없음" },
           "503": { "description": "DB 미설정" }

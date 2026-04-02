@@ -42,6 +42,61 @@ function resolveUserId(req) {
     return 1;
 }
 
+/** refined_text에 제목 줄이 없으면 첫 비어 있지 않은 줄에서 표시용 이름 추출 */
+function deriveRecipeName(refinedText) {
+    if (refinedText == null) {
+        return null;
+    }
+    const s = String(refinedText).trim();
+    if (!s) {
+        return null;
+    }
+    const stripBold = (t) =>
+        String(t)
+            .replace(/\*\*([^*]*)\*\*/g, '$1')
+            .trim();
+    const m = s.match(/레시피\s*제목\s*[:：]\s*([^\r\n]+)/i);
+    if (m) {
+        const n = stripBold(m[1]);
+        return n || null;
+    }
+    const first = s.split(/\r?\n/).find((line) => line.trim());
+    if (!first) {
+        return null;
+    }
+    const n = stripBold(first.replace(/^\d+\.\s*/, ''));
+    return n || null;
+}
+
+/** GET /api/recipes — 최신순 최대 20개 (id는 좋아요 등 연동용) */
+router.get('/', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    try {
+        const [rows] = await pool.execute(
+            'SELECT id, refined_text, like_count, YEAR(created_at) AS y, MONTH(created_at) AS m, DAY(created_at) AS d FROM recipe ORDER BY created_at DESC, id DESC LIMIT 20',
+        );
+        const recipes = rows.map((row) => ({
+            id: Number(row.id),
+            recipe_name: deriveRecipeName(row.refined_text),
+            created_at: {
+                year: Number(row.y),
+                month: Number(row.m),
+                day: Number(row.d),
+            },
+            like_count: Number(row.like_count),
+            refined_text: row.refined_text != null ? String(row.refined_text) : null,
+        }));
+        res.json({ ok: true, recipes });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
 /** POST /api/recipes { raw_text?, refined_text?, audio_url? } — 선택 Authorization: Bearer */
 router.post('/', async (req, res) => {
     const pool = getPool();
@@ -81,7 +136,7 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * POST /api/recipes/:recipeId/like — recipe_like 행 추가 + recipe.like_count +1 (중복 시 alreadyLiked)
+ * POST /api/recipes/:recipeId/like — 토글: 없으면 INSERT·+1, 있으면 DELETE·−1 (트랜잭션 없음)
  */
 router.post('/:recipeId/like', async (req, res) => {
     const pool = getPool();
@@ -96,33 +151,41 @@ router.post('/:recipeId/like', async (req, res) => {
         return;
     }
 
-    const [exists] = await pool.execute('SELECT id, like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
-    if (!exists.length) {
-        res.status(404).json({ ok: false, error: 'recipe not found' });
-        return;
-    }
-
     const userId = resolveUserId(req);
-    const conn = await pool.getConnection();
 
     try {
-        await conn.beginTransaction();
+        const [exists] = await pool.execute('SELECT id FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+        if (!exists.length) {
+            res.status(404).json({ ok: false, error: 'recipe not found' });
+            return;
+        }
+
+        const [delResult] = await pool.execute(
+            'DELETE FROM recipe_like WHERE user_id = ? AND recipe_id = ?',
+            [userId, recipeId],
+        );
+
+        if (delResult.affectedRows > 0) {
+            await pool.execute(
+                'UPDATE recipe SET like_count = IF(like_count > 0, like_count - 1, 0) WHERE id = ?',
+                [recipeId],
+            );
+            const [after] = await pool.execute('SELECT like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+            res.status(200).json({
+                ok: true,
+                liked: false,
+                like_count: Number(after[0].like_count),
+                user_id: userId,
+            });
+            return;
+        }
+
         try {
-            await conn.execute('INSERT INTO recipe_like (user_id, recipe_id) VALUES (?, ?)', [
+            await pool.execute('INSERT INTO recipe_like (user_id, recipe_id) VALUES (?, ?)', [
                 userId,
                 recipeId,
             ]);
         } catch (insertErr) {
-            await conn.rollback();
-            if (insertErr.code === 'ER_DUP_ENTRY' || insertErr.errno === 1062) {
-                res.json({
-                    ok: true,
-                    alreadyLiked: true,
-                    like_count: Number(exists[0].like_count),
-                    user_id: userId,
-                });
-                return;
-            }
             if (insertErr.code === 'ER_NO_REFERENCED_ROW_2' || insertErr.errno === 1452) {
                 res.status(400).json({ ok: false, error: 'invalid user_id (user not found)' });
                 return;
@@ -130,20 +193,16 @@ router.post('/:recipeId/like', async (req, res) => {
             throw insertErr;
         }
 
-        await conn.execute('UPDATE recipe SET like_count = like_count + 1 WHERE id = ?', [recipeId]);
-        const [after] = await conn.execute('SELECT like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
-        await conn.commit();
+        await pool.execute('UPDATE recipe SET like_count = like_count + 1 WHERE id = ?', [recipeId]);
+        const [after] = await pool.execute('SELECT like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
         res.status(201).json({
             ok: true,
-            alreadyLiked: false,
+            liked: true,
             like_count: Number(after[0].like_count),
             user_id: userId,
         });
     } catch (e) {
-        await conn.rollback();
         res.status(500).json({ ok: false, error: String(e.message || e) });
-    } finally {
-        conn.release();
     }
 });
 
