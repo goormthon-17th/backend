@@ -25,3 +25,6 @@ coverage/
 
 # misc
 *.local
+
+# uploaded files (로컬 디스크)
+uploads/

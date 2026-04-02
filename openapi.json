@@ -14,7 +14,8 @@
     { "name": "Health", "description": "헬스" },
     { "name": "Auth", "description": "회원" },
     { "name": "Recipe", "description": "레시피" },
-    { "name": "User", "description": "유저 프로필" }
+    { "name": "User", "description": "유저 프로필" },
+    { "name": "Upload", "description": "파일 업로드" }
   ],
   "paths": {
     "/api": {
@@ -476,6 +477,38 @@
           "413": { "description": "용량 초과 — text/plain" },
           "502": { "description": "Clova/Gemini 오류 — text/plain 메시지" },
           "503": { "description": "환경변수 미설정 — text/plain 메시지" }
+        }
+      }
+    },
+    "/api/upload/image": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "이미지 디스크 저장 후 URL 경로 반환 (GET /uploads/파일명 으로 조회)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG / PNG / WebP / GIF"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "ok, path(/uploads/...), filename, url(PUBLIC_BASE_URL 설정 시 절대 URL)"
+          },
+          "400": { "description": "필드 없음·이미지 타입 아님" },
+          "413": { "description": "용량 초과 (UPLOAD_MAX_IMAGE_BYTES)" },
+          "500": { "description": "저장 실패" }
         }
       }
     }
