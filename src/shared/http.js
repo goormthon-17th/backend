@@ -25,7 +25,6 @@ function applyNotFound(app) {
         const pth = req.path.split('?')[0];
         if (
             pth.startsWith('/api/') &&
-            pth !== '/api/test' &&
             pth !== '/api/db/ping' &&
             !pth.startsWith('/api/docs') &&
             !pth.startsWith('/api/ai/')

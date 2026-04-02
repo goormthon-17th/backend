@@ -3,13 +3,20 @@
   "info": {
     "title": "Backend API",
     "version": "1.0.0",
-    "description": "goormthon backend — 스키마: user, recipe, recipe_like, user_subscribe (init.sql)"
+    "description": "Swagger UI: `/api/docs`"
   },
   "servers": [{ "url": "/" }],
+  "tags": [
+    { "name": "API", "description": "상태" },
+    { "name": "AI", "description": "Gemini" },
+    { "name": "Database", "description": "MySQL" },
+    { "name": "Health", "description": "헬스" }
+  ],
   "paths": {
     "/api": {
       "get": {
-        "summary": "상태 확인",
+        "tags": ["API"],
+        "summary": "백엔드 동작 확인",
         "responses": {
           "200": {
             "description": "OK",
@@ -29,31 +36,9 @@
         }
       }
     },
-    "/api/test": {
-      "get": {
-        "summary": "배포/헬스 확인",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "endpoint": { "type": "string" },
-                    "deployCheck": { "type": "string" },
-                    "at": { "type": "string", "format": "date-time" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/db/ping": {
       "get": {
+        "tags": ["Database"],
         "summary": "MySQL 연결 확인",
         "responses": {
           "200": { "description": "OK" },
@@ -63,6 +48,7 @@
     },
     "/health": {
       "get": {
+        "tags": ["Health"],
         "summary": "Liveness",
         "responses": {
           "200": { "description": "OK" }
@@ -71,7 +57,8 @@
     },
     "/api/ai/generate": {
       "post": {
-        "summary": "지시문에 따라 입력 텍스트 기반 결과 텍스트 생성",
+        "tags": ["AI"],
+        "summary": "STT 원문 → 레시피 카드 (instruction 생략 시 서버 기본 프롬프트)",
         "requestBody": {
           "required": true,
           "content": {
@@ -80,10 +67,10 @@
                 "type": "object",
                 "required": ["text"],
                 "properties": {
-                  "text": { "type": "string", "description": "프론트에서 보낸 원문" },
+                  "text": { "type": "string" },
                   "instruction": {
                     "type": "string",
-                    "description": "프롬프트 지시문(선택). 없으면 서버 기본 지시문만 적용"
+                    "description": "선택. 없으면 서버 기본 지시문"
                   }
                 }
               }
@@ -107,45 +94,7 @@
           },
           "400": { "description": "Bad request" },
           "502": { "description": "Gemini 오류" },
-          "503": { "description": "GEMINI_API_KEY 없음" }
-        }
-      }
-    },
-    "/api/ai/refine": {
-      "post": {
-        "summary": "텍스트 Gemini 정제(호환용, instruction 없음)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["text"],
-                "properties": {
-                  "text": { "type": "string", "description": "원문" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "refinedText": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": { "description": "Bad request" },
-          "502": { "description": "Gemini 오류" },
-          "503": { "description": "GEMINI_API_KEY 없음" }
+          "503": { "description": "API 키 없음" }
         }
       }
     }

@@ -4,8 +4,7 @@ const { buildGeneratePrompt } = require('./refinePrompt');
 
 /**
  * @param {string} rawText
- * @param {string|undefined|null} clientInstruction 프론트 지시문(선택)
- * @returns {Promise<{ ok: true, text: string } | { ok: false, status: number, error: string }>}
+ * @param {string|undefined|null} clientInstruction
  */
 async function generateFromText(rawText, clientInstruction) {
     const apiKey = process.env.GEMINI_API_KEY || config.defaultGeminiApiKey;
@@ -29,11 +28,4 @@ async function generateFromText(rawText, clientInstruction) {
     }
 }
 
-/** @deprecated generateFromText(raw, undefined) — 응답 필드명만 refinedText */
-async function refineText(rawText) {
-    const r = await generateFromText(rawText, undefined);
-    if (!r.ok) return r;
-    return { ok: true, refinedText: r.text };
-}
-
-module.exports = { generateFromText, refineText };
+module.exports = { generateFromText };
