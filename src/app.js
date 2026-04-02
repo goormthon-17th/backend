@@ -1,6 +1,6 @@
 const express = require('express');
 const config = require('./config');
-const { applyCors, applyBodyParser, applyNotFound } = require('./shared/http');
+const { applyCors, applyBodyParser, applyJsonBodyErrorHandler, applyNotFound } = require('./shared/http');
 const { register: registerDocumentation } = require('./domains/documentation');
 const apiRouter = require('./domains/api');
 const healthRouter = require('./domains/health');
@@ -17,6 +17,7 @@ function createApp() {
     app.use('/health', healthRouter);
 
     applyNotFound(app);
+    applyJsonBodyErrorHandler(app);
 
     return app;
 }

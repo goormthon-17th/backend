@@ -20,6 +20,21 @@ function applyBodyParser(app) {
     app.use(express.json());
 }
 
+/** JSON 파싱 실패 시 HTML 대신 JSON 400 (Swagger/클라이언트 디버깅용) */
+function applyJsonBodyErrorHandler(app) {
+    app.use((err, req, res, next) => {
+        if (err.type === 'entity.parse.failed') {
+            res.status(400).json({
+                ok: false,
+                error: 'Invalid JSON body',
+                hint: 'Send Content-Type: application/json with a raw JSON object. Example: {"text":"STT text here"} — do not paste HTML or line breaks outside quoted strings.',
+            });
+            return;
+        }
+        next(err);
+    });
+}
+
 function applyNotFound(app) {
     app.use((req, res, next) => {
         const pth = req.path.split('?')[0];
@@ -40,4 +55,4 @@ function applyNotFound(app) {
     });
 }
 
-module.exports = { applyCors, applyBodyParser, applyNotFound };
+module.exports = { applyCors, applyBodyParser, applyJsonBodyErrorHandler, applyNotFound };
