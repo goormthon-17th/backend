@@ -3,7 +3,7 @@
   "info": {
     "title": "Backend API",
     "version": "1.0.0",
-    "description": "goormthon backend"
+    "description": "goormthon backend — 스키마: user, recipe, recipe_like, user_subscribe (init.sql)"
   },
   "servers": [{ "url": "/" }],
   "paths": {
@@ -52,6 +52,15 @@
         }
       }
     },
+    "/api/db/ping": {
+      "get": {
+        "summary": "MySQL 연결 확인",
+        "responses": {
+          "200": { "description": "OK" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Liveness",
@@ -60,34 +69,41 @@
         }
       }
     },
-    "/api/test-table": {
-      "get": {
-        "summary": "DB `test` 테이블 조회",
-        "responses": {
-          "200": { "description": "OK" },
-          "503": { "description": "DB 미설정" }
-        }
-      },
+    "/api/ai/refine": {
       "post": {
-        "summary": "DB `test` 테이블에 행 추가",
+        "summary": "텍스트 Gemini 정제",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["test"],
+                "required": ["text"],
                 "properties": {
-                  "test": { "type": "string" }
+                  "text": { "type": "string", "description": "원문" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Created" },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "refinedText": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
           "400": { "description": "Bad request" },
-          "503": { "description": "DB 미설정" }
+          "502": { "description": "Gemini 오류" },
+          "503": { "description": "GEMINI_API_KEY 없음" }
         }
       }
     }
