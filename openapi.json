@@ -227,16 +227,18 @@
     "/api/ai/generate": {
       "post": {
         "tags": ["AI"],
-        "summary": "STT 원문 → 레시피 카드 (서버 고정 프롬프트)",
+        "summary": "STT 원문 → 레시피 카드 (서버 고정 프롬프트). image_url·audio_url 필수 — 응답에 그대로 포함되어 POST /api/recipes에 재사용 가능",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["text"],
+                "required": ["text", "image_url", "audio_url"],
                 "properties": {
-                  "text": { "type": "string" }
+                  "text": { "type": "string", "description": "STT 원문" },
+                  "image_url": { "type": "string", "description": "레시피 이미지 URL (recipe.image_url)" },
+                  "audio_url": { "type": "string", "description": "음성 URL (recipe.audio_url)" }
                 }
               }
             }
@@ -251,7 +253,9 @@
                   "type": "object",
                   "properties": {
                     "ok": { "type": "boolean" },
-                    "resultText": { "type": "string" }
+                    "resultText": { "type": "string" },
+                    "image_url": { "type": "string" },
+                    "audio_url": { "type": "string" }
                   }
                 }
               }
