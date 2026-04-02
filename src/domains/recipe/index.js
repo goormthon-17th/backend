@@ -68,8 +68,26 @@ function deriveRecipeName(refinedText) {
     return n || null;
 }
 
-/** GET /api/recipes — 최신순 최대 20개 (id는 좋아요 등 연동용) */
-router.get('/', async (req, res) => {
+const RECIPE_LIST_SQL =
+    'SELECT id, refined_text, like_count, image_url, YEAR(created_at) AS y, MONTH(created_at) AS m, DAY(created_at) AS d FROM recipe';
+
+function mapRecipeListRows(rows) {
+    return rows.map((row) => ({
+        id: Number(row.id),
+        recipe_name: deriveRecipeName(row.refined_text),
+        created_at: {
+            year: Number(row.y),
+            month: Number(row.m),
+            day: Number(row.d),
+        },
+        like_count: Number(row.like_count),
+        refined_text: row.refined_text != null ? String(row.refined_text) : null,
+        image_url: row.image_url != null ? String(row.image_url) : null,
+    }));
+}
+
+/** GET /api/recipes/latest — 최신순 최대 20개 */
+router.get('/latest', async (req, res) => {
     const pool = getPool();
     if (!pool) {
         res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
@@ -78,26 +96,68 @@ router.get('/', async (req, res) => {
 
     try {
         const [rows] = await pool.execute(
-            'SELECT id, refined_text, like_count, YEAR(created_at) AS y, MONTH(created_at) AS m, DAY(created_at) AS d FROM recipe ORDER BY created_at DESC, id DESC LIMIT 20',
+            `${RECIPE_LIST_SQL} ORDER BY created_at DESC, id DESC LIMIT 20`,
         );
-        const recipes = rows.map((row) => ({
-            id: Number(row.id),
-            recipe_name: deriveRecipeName(row.refined_text),
-            created_at: {
-                year: Number(row.y),
-                month: Number(row.m),
-                day: Number(row.d),
-            },
-            like_count: Number(row.like_count),
-            refined_text: row.refined_text != null ? String(row.refined_text) : null,
-        }));
-        res.json({ ok: true, recipes });
+        res.json({ ok: true, recipes: mapRecipeListRows(rows) });
     } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
     }
 });
 
-/** POST /api/recipes { raw_text?, refined_text?, audio_url? } — 선택 Authorization: Bearer */
+/** GET /api/recipes/by-likes — 좋아요 수 내림차순 최대 20개 (동점이면 최신순) */
+router.get('/by-likes', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    try {
+        const [rows] = await pool.execute(
+            `${RECIPE_LIST_SQL} ORDER BY like_count DESC, created_at DESC, id DESC LIMIT 20`,
+        );
+        res.json({ ok: true, recipes: mapRecipeListRows(rows) });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
+/** GET /api/recipes/user/:userId — 해당 유저가 등록한 레시피 (최신순, 필드는 /latest 와 동일) */
+router.get('/user/:userId', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId) || userId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid userId' });
+        return;
+    }
+
+    try {
+        const [users] = await pool.execute('SELECT id FROM `user` WHERE id = ? LIMIT 1', [userId]);
+        if (!users.length) {
+            res.status(404).json({ ok: false, error: 'user not found' });
+            return;
+        }
+
+        const [rows] = await pool.execute(
+            `${RECIPE_LIST_SQL} WHERE user_id = ? ORDER BY created_at DESC, id DESC`,
+            [userId],
+        );
+        res.json({
+            ok: true,
+            user_id: userId,
+            recipes: mapRecipeListRows(rows),
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
+/** POST /api/recipes { raw_text?, refined_text?, audio_url?, image_url? } — 선택 Authorization: Bearer */
 router.post('/', async (req, res) => {
     const pool = getPool();
     if (!pool) {
@@ -109,13 +169,14 @@ router.post('/', async (req, res) => {
     const rawText = body.raw_text != null ? String(body.raw_text) : null;
     const refinedText = body.refined_text != null ? String(body.refined_text) : null;
     const audioUrl = body.audio_url != null ? String(body.audio_url) : null;
+    const imageUrl = body.image_url != null ? String(body.image_url) : null;
 
     const userId = resolveUserId(req);
 
     try {
         const [r] = await pool.execute(
-            'INSERT INTO recipe (user_id, raw_text, refined_text, audio_url) VALUES (?, ?, ?, ?)',
-            [userId, rawText, refinedText, audioUrl],
+            'INSERT INTO recipe (user_id, raw_text, refined_text, audio_url, image_url) VALUES (?, ?, ?, ?, ?)',
+            [userId, rawText, refinedText, audioUrl, imageUrl],
         );
         const insertId = r.insertId;
         res.status(201).json({

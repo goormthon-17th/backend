@@ -112,17 +112,53 @@
         }
       }
     },
-    "/api/recipes": {
+    "/api/recipes/latest": {
       "get": {
         "tags": ["Recipe"],
-        "summary": "레시피 목록 최대 20개 (최신순, recipe_name은 refined_text에서 파생)",
+        "summary": "레시피 최신순 최대 20개",
         "responses": {
           "200": {
-            "description": "ok, recipes[] (최대 20건) — id, recipe_name, created_at{year,month,day}, like_count, refined_text"
+            "description": "ok, recipes[] (최대 20건) — id, recipe_name, created_at{year,month,day}, like_count, refined_text, image_url"
           },
           "503": { "description": "DB 미설정" }
         }
-      },
+      }
+    },
+    "/api/recipes/by-likes": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "레시피 좋아요순 최대 20개 (동점 시 최신순)",
+        "responses": {
+          "200": {
+            "description": "ok, recipes[] (최대 20건) — 필드 동일"
+          },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
+    "/api/recipes/user/{userId}": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "특정 유저가 등록한 레시피 목록 (최신순, 전체 행)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok, user_id, recipes[] — latest 목록과 동일 필드"
+          },
+          "400": { "description": "잘못된 userId" },
+          "404": { "description": "user 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
+    "/api/recipes": {
       "post": {
         "tags": ["Recipe"],
         "security": [{ "bearerAuth": [] }],
@@ -145,7 +181,8 @@
                 "properties": {
                   "raw_text": { "type": "string" },
                   "refined_text": { "type": "string" },
-                  "audio_url": { "type": "string" }
+                  "audio_url": { "type": "string" },
+                  "image_url": { "type": "string" }
                 }
               }
             }

@@ -18,6 +18,7 @@ const TABLE_DDLS = [
     raw_text TEXT,
     refined_text TEXT,
     audio_url VARCHAR(2048),
+    image_url VARCHAR(2048),
     like_count INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -54,6 +55,13 @@ async function ensureSchema() {
     }
     for (const sql of TABLE_DDLS) {
         await pool.query(sql);
+    }
+    try {
+        await pool.query('ALTER TABLE recipe ADD COLUMN image_url VARCHAR(2048) NULL AFTER audio_url');
+    } catch (e) {
+        if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) {
+            throw e;
+        }
     }
     // recipe 비로그인 시 user_id=1 FK용 (이미 id=1 있으면 스킵)
     const [existing] = await pool.query('SELECT id FROM `user` WHERE id = 1 LIMIT 1');
