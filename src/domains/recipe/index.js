@@ -132,6 +132,54 @@ router.get('/by-likes', async (req, res) => {
     }
 });
 
+function mapLikedByMeRows(rows) {
+    return rows.map((row) => ({
+        id: Number(row.id),
+        recipe_name: deriveRecipeName(row.refined_text),
+        refined_text: row.refined_text != null ? String(row.refined_text) : null,
+        like_count: Number(row.like_count),
+        image_url: nullableUrl(row.recipe_image_url),
+        created_at: {
+            year: Number(row.y),
+            month: Number(row.m),
+            day: Number(row.d),
+        },
+    }));
+}
+
+/** GET /api/recipes/liked — 내가 좋아요한 레시피 (좋아요 누른 순 최신). JWT 없으면 user_id=1 기준 */
+router.get('/liked', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const userId = resolveUserId(req);
+
+    try {
+        const [rows] = await pool.execute(
+            `SELECT
+                r.id,
+                r.refined_text,
+                r.like_count,
+                r.image_url AS recipe_image_url,
+                YEAR(r.created_at) AS y,
+                MONTH(r.created_at) AS m,
+                DAY(r.created_at) AS d
+            FROM recipe_like lk
+            INNER JOIN recipe r ON r.id = lk.recipe_id
+            WHERE lk.user_id = ?
+            ORDER BY lk.created_at DESC, lk.id DESC
+            LIMIT 200`,
+            [userId],
+        );
+        res.json({ ok: true, recipes: mapLikedByMeRows(rows) });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
 /** GET /api/recipes/user/:userId — 해당 유저가 등록한 레시피 (최신순, 필드는 /latest 와 동일) */
 router.get('/user/:userId', async (req, res) => {
     const pool = getPool();

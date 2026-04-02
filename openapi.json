@@ -220,6 +220,27 @@
         }
       }
     },
+    "/api/recipes/liked": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "내가 좋아요한 레시피 목록 (좋아요 누른 순 최신, 최대 200)",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "선택 — 없으면 user_id=1이 좋아요한 목록"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok, recipes[] — id, recipe_name, refined_text(내용), like_count, image_url, created_at { year, month, day } (레시피 작성일)"
+          },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes/user/{userId}": {
       "get": {
         "tags": ["Recipe"],
