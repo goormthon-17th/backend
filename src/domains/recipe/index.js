@@ -6,19 +6,27 @@ const { getPool } = require('../database/mysqlPool');
 const router = express.Router();
 
 /**
- * JWT 페이로드: 로그인 응답과 동일하게 { id, login_id, ... } — recipe.user_id 컬럼에는 id 값 사용 (키 이름은 user_id 아님)
- * Authorization: Bearer <token> (Bearer 대소문자 무관)
+ * JWT 페이로드: 로그인 응답과 동일하게 { id, login_id, ... } — recipe.user_id 컬럼에는 id 값 사용
+ * Authorization: `Bearer <token>` 또는 Swagger 파라미터에 토큰만 넣은 경우 `<token>` 단독도 허용
  */
+function extractBearerToken(headerValue) {
+    if (!headerValue || typeof headerValue !== 'string') {
+        return null;
+    }
+    const v = headerValue.trim();
+    const m = v.match(/^Bearer\s+(\S+)/i);
+    if (m) {
+        return m[1].trim() || null;
+    }
+    // Swagger Try it out에서 JWT만 붙여넣으면 "Bearer " 없이 옴
+    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)) {
+        return v;
+    }
+    return null;
+}
+
 function resolveUserId(req) {
-    const auth = req.headers.authorization;
-    if (!auth || typeof auth !== 'string') {
-        return 1;
-    }
-    const m = auth.match(/^Bearer\s+(\S+)/i);
-    if (!m) {
-        return 1;
-    }
-    const token = m[1].trim();
+    const token = extractBearerToken(req.headers.authorization);
     if (!token) {
         return 1;
     }

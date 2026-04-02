@@ -123,7 +123,7 @@
             "in": "header",
             "required": false,
             "schema": { "type": "string" },
-            "description": "Bearer <token> — 프론트는 localStorage 등에서 읽어 헤더로 전달"
+            "description": "`Bearer <token>` 또는 JWT 문자열만 (Swagger에 토큰만 붙여넣은 경우 대응)"
           }
         ],
         "requestBody": {
