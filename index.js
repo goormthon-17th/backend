@@ -6,38 +6,44 @@ const PORT = Number(process.env.PORT) || 8080;
 const DEPLOY_CHECK = 'deploy-verify-1';
 
 const server = http.createServer((req, res) => {
-  const url = req.url || '/';
-  const pathname = url.split('?')[0];
+    const url = req.url || '/';
+    const pathname = url.split('?')[0];
 
-  if (pathname === '/api/test') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(
-      JSON.stringify({
-        ok: true,
-        endpoint: '/api/test',
-        deployCheck: DEPLOY_CHECK,
-        at: new Date().toISOString(),
-      })
-    );
-    return;
-  }
+    if (pathname === '/test') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+            JSON.stringify({
+                ok: true,
+                endpoint: '/api/test',
+                deployCheck: DEPLOY_CHECK,
+                at: new Date().toISOString(),
+            }),
+        );
+        return;
+    }
 
-  if (pathname === '/api' || pathname.startsWith('/api/')) {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ ok: true, message: 'backend is running', path: pathname }));
-    return;
-  }
+    if (pathname === '/api') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, message: 'backend is running', path: pathname }));
+        return;
+    }
 
-  if (pathname === '/health') {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('ok');
-    return;
-  }
+    if (pathname.startsWith('/api/')) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'not found', path: pathname }));
+        return;
+    }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('not found');
+    if (pathname === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('ok');
+        return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('not found');
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`listening on 0.0.0.0:${PORT}`);
+    console.log(`listening on 0.0.0.0:${PORT}`);
 });
