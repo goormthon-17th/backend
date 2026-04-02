@@ -6,24 +6,30 @@ const { getPool } = require('../database/mysqlPool');
 const router = express.Router();
 
 /**
- * Authorization: Bearer <token> (프론트는 스토리지의 토큰을 헤더에 붙이면 됨) — 유효 시 페이로드 id → user_id, 없으면 1
+ * JWT 페이로드: 로그인 응답과 동일하게 { id, login_id, ... } — recipe.user_id 컬럼에는 id 값 사용 (키 이름은 user_id 아님)
+ * Authorization: Bearer <token> (Bearer 대소문자 무관)
  */
 function resolveUserId(req) {
     const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) {
+    if (!auth || typeof auth !== 'string') {
         return 1;
     }
-    const token = auth.slice(7).trim();
+    const m = auth.match(/^Bearer\s+(\S+)/i);
+    if (!m) {
+        return 1;
+    }
+    const token = m[1].trim();
     if (!token) {
         return 1;
     }
     try {
         const p = jwt.verify(token, config.jwtSecret);
-        if (p && p.id != null && Number.isFinite(Number(p.id)) && Number(p.id) > 0) {
-            return Number(p.id);
+        const raw = p && (p.id != null ? p.id : p.user_id);
+        if (raw != null && Number.isFinite(Number(raw)) && Number(raw) > 0) {
+            return Number(raw);
         }
     } catch (_) {
-        /* 무효 토큰 → 비로그인과 동일 */
+        /* 무효·만료 토큰 → 비로그인과 동일 */
     }
     return 1;
 }

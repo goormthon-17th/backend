@@ -6,8 +6,10 @@ const { getPool } = require('../database/mysqlPool');
 const router = express.Router();
 
 function userRowToPayload(row) {
+    const id = Number(row.id);
     return {
-        id: Number(row.id),
+        id,
+        user_id: id,
         login_id: row.login_id,
         password: row.password,
         nickname: row.nickname,
