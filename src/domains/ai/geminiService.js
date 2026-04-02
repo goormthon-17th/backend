@@ -4,7 +4,7 @@ const { buildGeneratePrompt } = require('./refinePrompt');
 
 /** @param {string} rawText */
 async function generateFromText(rawText) {
-    const apiKey = process.env.GEMINI_API_KEY || config.defaultGeminiApiKey;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         return {
             ok: false,
