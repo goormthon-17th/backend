@@ -8,6 +8,7 @@ const authRouter = require('../auth');
 const databaseRouter = require('../database');
 const recipeRouter = require('../recipe');
 const userRouter = require('../user');
+const envRouter = require('../env');
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.use('/auth', authRouter);
 router.use('/ai', aiRouter);
 router.use('/recipes', recipeRouter);
 router.use('/users', userRouter);
+router.use('/env', envRouter);
 router.use('/db', databaseRouter);
 
 module.exports = router;
