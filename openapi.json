@@ -170,18 +170,25 @@
     "/api/users/{userId}": {
       "get": {
         "tags": ["User"],
-        "summary": "유저 프로필 요약 (닉네임, profile_image_url, 레시피·좋아요·구독 수)",
+        "summary": "유저 프로필 요약 + is_subscribed (Bearer 없으면 viewer=user 1)",
         "parameters": [
           {
             "name": "userId",
             "in": "path",
             "required": true,
             "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "선택 — 없거나 무효면 구독 여부는 follower_id=1 기준"
           }
         ],
         "responses": {
           "200": {
-            "description": "ok, user_id, nickname, profile_image_url, recipe_count, recipe_likes_total, following_count"
+            "description": "ok, user_id, nickname, profile_image_url, recipe_count, recipe_likes_total, following_count, is_subscribed"
           },
           "400": { "description": "잘못된 userId" },
           "404": { "description": "user 없음" },

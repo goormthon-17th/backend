@@ -170,7 +170,8 @@ router.post('/:userId/subscribe', async (req, res) => {
 });
 
 /**
- * GET /api/users/:userId — 프로필 요약 (닉네임, 레시피 수, 레시피 좋아요 합계, 내가 구독 중인 사람 수)
+ * GET /api/users/:userId — 프로필 요약 + is_subscribed(조회 주체가 이 유저를 구독 중인지)
+ * JWT 없거나 무효면 조회 주체는 user id 1 (다른 API와 동일)
  */
 router.get('/:userId', async (req, res) => {
     const pool = getPool();
@@ -185,6 +186,8 @@ router.get('/:userId', async (req, res) => {
         return;
     }
 
+    const viewerId = resolveUserId(req);
+
     try {
         const [rows] = await pool.execute(
             `SELECT
@@ -192,7 +195,11 @@ router.get('/:userId', async (req, res) => {
                 u.profile_image_url,
                 COALESCE(rc.cnt, 0) AS recipe_count,
                 COALESCE(rc.likes_sum, 0) AS recipe_likes_total,
-                COALESCE(fc.cnt, 0) AS following_count
+                COALESCE(fc.cnt, 0) AS following_count,
+                EXISTS (
+                    SELECT 1 FROM user_subscribe s
+                    WHERE s.follower_id = ? AND s.following_id = u.id
+                ) AS is_subscribed
             FROM \`user\` u
             LEFT JOIN (
                 SELECT user_id, COUNT(*) AS cnt, COALESCE(SUM(like_count), 0) AS likes_sum
@@ -206,7 +213,7 @@ router.get('/:userId', async (req, res) => {
             ) fc ON fc.follower_id = u.id
             WHERE u.id = ?
             LIMIT 1`,
-            [userId],
+            [viewerId, userId],
         );
 
         if (!rows.length) {
@@ -215,6 +222,8 @@ router.get('/:userId', async (req, res) => {
         }
 
         const row = rows[0];
+        const isSubscribed = Number(row.is_subscribed) === 1;
+
         res.json({
             ok: true,
             user_id: userId,
@@ -226,6 +235,7 @@ router.get('/:userId', async (req, res) => {
             recipe_count: Number(row.recipe_count),
             recipe_likes_total: Number(row.recipe_likes_total),
             following_count: Number(row.following_count),
+            is_subscribed: isSubscribed,
         });
     } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
