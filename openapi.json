@@ -248,7 +248,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ok — id, user_id, nickname, profile_image_url, recipe_image_url, recipe_name, created_at{year,month,day}, like_count, refined_text, raw_text, reviews[] (id, user_id, nickname, content, is_liked, emo_1~3, created_at, updated_at ISO)"
+            "description": "ok — reviews[] 항목의 created_at·updated_at 은 { year, month, day } (DB 기준), 레시피 본문 created_at 동일"
           },
           "400": { "description": "잘못된 recipeId" },
           "404": { "description": "레시피 없음" },
@@ -293,8 +293,8 @@
           }
         },
         "responses": {
-          "201": { "description": "신규 — ok, created true, recipe_id, review" },
-          "200": { "description": "수정(UPSERT) — created false" },
+          "201": { "description": "신규 — review.created_at·updated_at 은 { year, month, day }" },
+          "200": { "description": "수정(UPSERT) — 동일" },
           "400": { "description": "FK 등" },
           "404": { "description": "레시피 없음" },
           "503": { "description": "DB 미설정" }

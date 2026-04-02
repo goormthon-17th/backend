@@ -171,12 +171,33 @@ function tinyToBool(v) {
     return Boolean(Number(v));
 }
 
-function tsIso(v) {
-    if (v instanceof Date) {
-        return v.toISOString();
-    }
-    return v != null ? String(v) : null;
+function mapReviewRow(row) {
+    return {
+        id: Number(row.id),
+        user_id: Number(row.user_id),
+        nickname: String(row.reviewer_nickname),
+        content: row.content != null ? String(row.content) : null,
+        is_liked: tinyToBool(row.is_liked),
+        emo_1: tinyToBool(row.emo_1),
+        emo_2: tinyToBool(row.emo_2),
+        emo_3: tinyToBool(row.emo_3),
+        created_at: {
+            year: Number(row.cy),
+            month: Number(row.cm),
+            day: Number(row.cd),
+        },
+        updated_at: {
+            year: Number(row.uy),
+            month: Number(row.um),
+            day: Number(row.ud),
+        },
+    };
 }
+
+const REVIEW_SELECT_YMD = `rv.id, rv.user_id, rv.content, rv.is_liked, rv.emo_1, rv.emo_2, rv.emo_3,
+                YEAR(rv.created_at) AS cy, MONTH(rv.created_at) AS cm, DAY(rv.created_at) AS cd,
+                YEAR(rv.updated_at) AS uy, MONTH(rv.updated_at) AS um, DAY(rv.updated_at) AS ud,
+                u.nickname AS reviewer_nickname`;
 
 /** JSON body 불리언: true/false, 1/0, "t"/"f" 등 */
 function bodyBool(v, defaultVal = false) {
@@ -254,8 +275,7 @@ router.post('/:recipeId/reviews', async (req, res) => {
         const created = header.affectedRows === 1;
 
         const [savedRows] = await pool.execute(
-            `SELECT rv.id, rv.user_id, rv.content, rv.is_liked, rv.emo_1, rv.emo_2, rv.emo_3, rv.created_at, rv.updated_at,
-                u.nickname AS reviewer_nickname
+            `SELECT ${REVIEW_SELECT_YMD}
              FROM recipe_review rv
              INNER JOIN \`user\` u ON u.id = rv.user_id
              WHERE rv.user_id = ? AND rv.recipe_id = ?
@@ -264,18 +284,7 @@ router.post('/:recipeId/reviews', async (req, res) => {
         );
         const row = savedRows[0];
 
-        const review = {
-            id: Number(row.id),
-            user_id: Number(row.user_id),
-            nickname: String(row.reviewer_nickname),
-            content: row.content != null ? String(row.content) : null,
-            is_liked: tinyToBool(row.is_liked),
-            emo_1: tinyToBool(row.emo_1),
-            emo_2: tinyToBool(row.emo_2),
-            emo_3: tinyToBool(row.emo_3),
-            created_at: tsIso(row.created_at),
-            updated_at: tsIso(row.updated_at),
-        };
+        const review = mapReviewRow(row);
 
         res.status(created ? 201 : 200).json({
             ok: true,
@@ -326,8 +335,7 @@ router.get('/:recipeId', async (req, res) => {
         const rrow = rows[0];
 
         const [reviewRows] = await pool.execute(
-            `SELECT rv.id, rv.user_id, rv.content, rv.is_liked, rv.emo_1, rv.emo_2, rv.emo_3, rv.created_at, rv.updated_at,
-                u.nickname AS reviewer_nickname
+            `SELECT ${REVIEW_SELECT_YMD}
             FROM recipe_review rv
             INNER JOIN \`user\` u ON u.id = rv.user_id
             WHERE rv.recipe_id = ?
@@ -335,18 +343,7 @@ router.get('/:recipeId', async (req, res) => {
             [recipeId],
         );
 
-        const reviews = reviewRows.map((row) => ({
-            id: Number(row.id),
-            user_id: Number(row.user_id),
-            nickname: String(row.reviewer_nickname),
-            content: row.content != null ? String(row.content) : null,
-            is_liked: tinyToBool(row.is_liked),
-            emo_1: tinyToBool(row.emo_1),
-            emo_2: tinyToBool(row.emo_2),
-            emo_3: tinyToBool(row.emo_3),
-            created_at: tsIso(row.created_at),
-            updated_at: tsIso(row.updated_at),
-        }));
+        const reviews = reviewRows.map((row) => mapReviewRow(row));
 
         res.json({
             ok: true,
