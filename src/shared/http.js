@@ -43,6 +43,7 @@ function applyNotFound(app) {
             pth !== '/api/db/ping' &&
             !pth.startsWith('/api/docs') &&
             !pth.startsWith('/api/ai/') &&
+            !pth.startsWith('/api/voice') &&
             !pth.startsWith('/api/auth/') &&
             !pth.startsWith('/api/recipes') &&
             !pth.startsWith('/api/users')

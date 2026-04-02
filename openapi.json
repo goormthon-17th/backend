@@ -9,6 +9,7 @@
   "tags": [
     { "name": "API", "description": "상태" },
     { "name": "AI", "description": "Gemini" },
+    { "name": "Voice", "description": "음성 업로드" },
     { "name": "Database", "description": "MySQL" },
     { "name": "Health", "description": "헬스" },
     { "name": "Auth", "description": "회원" },
@@ -402,6 +403,50 @@
           "400": { "description": "Bad request" },
           "502": { "description": "Gemini 오류" },
           "503": { "description": "API 키 없음" }
+        }
+      }
+    },
+    "/api/voice": {
+      "post": {
+        "tags": ["Voice"],
+        "summary": "음성 파일 업로드 (multipart/form-data, 필드명 audio)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["audio"],
+                "properties": {
+                  "audio": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "음성 바이너리 (예: audio/webm, audio/wav)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수신 완료 — 메타데이터만 반환 (본문은 서버 메모리 buffer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "originalName": { "type": "string" },
+                    "mimeType": { "type": "string" },
+                    "size": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "audio 필드 없음 또는 multer 오류" },
+          "413": { "description": "파일 크기 초과 (기본 30MB, VOICE_UPLOAD_MAX_BYTES로 조정)" }
         }
       }
     }
