@@ -12,6 +12,8 @@ spec:
         metadata:
             labels:
                 app: mysql
+            annotations:
+                deploy.goormthon.io/mysql-spec: secret-key-mysql-password
         spec:
             containers:
                 - name: mysql

@@ -21,3 +21,11 @@ patches:
               MYSQL_USER: myuser
               MYSQL_PASSWORD: mypass123
               MYSQL_DATABASE: mydb
+    # secretKeyRef.key 에 비밀번호 문자열이 들어가면 클러스터가 key qwer1234 를 찾다가 실패함 — 항상 필드명 사용
+    - target:
+          kind: StatefulSet
+          name: mysql
+      patch: |
+          - op: replace
+            path: /spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/key
+            value: MYSQL_PASSWORD
