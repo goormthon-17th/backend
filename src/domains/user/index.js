@@ -40,7 +40,7 @@ function resolveUserId(req) {
 
 /**
  * GET /api/users/following — 내가 구독 중인 유저 최대 20명 (구독한 순서 최신). JWT 없으면 follower 1
- * 각 항목: user_id, nickname, image_url(해당 유저 레시피 중 image_url 있는 것 하나·최신)
+ * 각 항목: user_id, nickname, profile_image_url(유저), recipe_image_url(대표 레시피 썸네일)
  */
 router.get('/following', async (req, res) => {
     const pool = getPool();
@@ -56,6 +56,7 @@ router.get('/following', async (req, res) => {
             `SELECT
                 u.id AS user_id,
                 u.nickname,
+                u.profile_image_url,
                 (
                     SELECT r.image_url FROM recipe r
                     WHERE r.user_id = u.id
@@ -63,7 +64,7 @@ router.get('/following', async (req, res) => {
                       AND TRIM(r.image_url) <> ''
                     ORDER BY r.created_at DESC, r.id DESC
                     LIMIT 1
-                ) AS image_url
+                ) AS recipe_image_url
             FROM user_subscribe s
             INNER JOIN \`user\` u ON u.id = s.following_id
             WHERE s.follower_id = ?
@@ -75,7 +76,14 @@ router.get('/following', async (req, res) => {
         const users = rows.map((row) => ({
             user_id: Number(row.user_id),
             nickname: String(row.nickname),
-            image_url: row.image_url != null && String(row.image_url).trim() !== '' ? String(row.image_url) : null,
+            profile_image_url:
+                row.profile_image_url != null && String(row.profile_image_url).trim() !== ''
+                    ? String(row.profile_image_url)
+                    : null,
+            recipe_image_url:
+                row.recipe_image_url != null && String(row.recipe_image_url).trim() !== ''
+                    ? String(row.recipe_image_url)
+                    : null,
         }));
 
         res.json({ ok: true, users });
@@ -181,6 +189,7 @@ router.get('/:userId', async (req, res) => {
         const [rows] = await pool.execute(
             `SELECT
                 u.nickname,
+                u.profile_image_url,
                 COALESCE(rc.cnt, 0) AS recipe_count,
                 COALESCE(rc.likes_sum, 0) AS recipe_likes_total,
                 COALESCE(fc.cnt, 0) AS following_count
@@ -210,6 +219,10 @@ router.get('/:userId', async (req, res) => {
             ok: true,
             user_id: userId,
             nickname: String(row.nickname),
+            profile_image_url:
+                row.profile_image_url != null && String(row.profile_image_url).trim() !== ''
+                    ? String(row.profile_image_url)
+                    : null,
             recipe_count: Number(row.recipe_count),
             recipe_likes_total: Number(row.recipe_likes_total),
             following_count: Number(row.following_count),

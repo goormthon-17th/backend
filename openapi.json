@@ -72,14 +72,15 @@
                 "properties": {
                   "loginId": { "type": "string" },
                   "password": { "type": "string" },
-                  "nickname": { "type": "string" }
+                  "nickname": { "type": "string" },
+                  "profile_image_url": { "type": "string", "description": "선택, 프로필 이미지 URL" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Created" },
+          "201": { "description": "Created — user에 profile_image_url 포함" },
           "400": { "description": "Bad request" },
           "409": { "description": "loginId 중복" },
           "503": { "description": "DB 미설정" }
@@ -117,7 +118,7 @@
       "get": {
         "tags": ["User"],
         "security": [{ "bearerAuth": [] }],
-        "summary": "내가 구독 중인 유저 목록 최대 20 (user_id, nickname, 대표 recipe image_url)",
+        "summary": "내가 구독 중인 유저 목록 최대 20 (profile_image_url 유저 / recipe_image_url 레시피)",
         "parameters": [
           {
             "name": "Authorization",
@@ -129,7 +130,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ok, users[] — user_id, nickname, image_url(레시피 썸네일 URL 또는 null)"
+            "description": "ok, users[] — user_id, nickname, profile_image_url, recipe_image_url"
           },
           "503": { "description": "DB 미설정" }
         }
@@ -168,7 +169,7 @@
     "/api/users/{userId}": {
       "get": {
         "tags": ["User"],
-        "summary": "유저 프로필 요약 (닉네임, 레시피 수, 레시피 좋아요 합계, 구독 중인 사용자 수)",
+        "summary": "유저 프로필 요약 (닉네임, profile_image_url, 레시피·좋아요·구독 수)",
         "parameters": [
           {
             "name": "userId",
@@ -179,7 +180,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ok, user_id, nickname, recipe_count, recipe_likes_total, following_count"
+            "description": "ok, user_id, nickname, profile_image_url, recipe_count, recipe_likes_total, following_count"
           },
           "400": { "description": "잘못된 userId" },
           "404": { "description": "user 없음" },
@@ -193,7 +194,7 @@
         "summary": "레시피 최신순 최대 20개",
         "responses": {
           "200": {
-            "description": "ok, recipes[] — id, user_id, nickname(작성자), recipe_name, created_at, like_count, refined_text, image_url"
+            "description": "ok, recipes[] — profile_image_url(작성자), recipe_image_url(레시피), id, user_id, nickname, recipe_name, created_at, like_count, refined_text"
           },
           "503": { "description": "DB 미설정" }
         }
@@ -205,7 +206,7 @@
         "summary": "레시피 좋아요순 최대 20개 (동점 시 최신순)",
         "responses": {
           "200": {
-            "description": "ok, recipes[] — /latest 와 동일 필드 (user_id, nickname 포함)"
+            "description": "ok, recipes[] — /latest 와 동일 (profile_image_url, recipe_image_url 구분)"
           },
           "503": { "description": "DB 미설정" }
         }
@@ -225,7 +226,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ok, user_id(프로필 주인), recipes[] — 항목마다 작성자 user_id·nickname 포함"
+            "description": "ok, user_id(프로필 주인), recipes[] — /latest 와 동일 필드"
           },
           "400": { "description": "잘못된 userId" },
           "404": { "description": "user 없음" },
@@ -256,7 +257,7 @@
                 "properties": {
                   "raw_text": { "type": "string" },
                   "refined_text": { "type": "string" },
-                  "image_url": { "type": "string" }
+                  "image_url": { "type": "string", "description": "레시피 썸네일 → DB recipe.image_url" }
                 }
               }
             }

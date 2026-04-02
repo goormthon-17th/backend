@@ -13,15 +13,19 @@ function userRowToPayload(row) {
         login_id: row.login_id,
         password: row.password,
         nickname: row.nickname,
+        profile_image_url:
+            row.profile_image_url != null && String(row.profile_image_url).trim() !== ''
+                ? String(row.profile_image_url)
+                : null,
         role: row.role,
         created_at:
             row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
     };
 }
 
-/** POST /api/auth/register { loginId, password, nickname } */
+/** POST /api/auth/register { loginId, password, nickname, profile_image_url? } */
 router.post('/register', async (req, res) => {
-    const { loginId, password, nickname } = req.body || {};
+    const { loginId, password, nickname, profile_image_url } = req.body || {};
     if (!loginId || !password || !nickname) {
         res.status(400).json({ ok: false, error: 'loginId, password, nickname required' });
         return;
@@ -34,17 +38,21 @@ router.post('/register', async (req, res) => {
     const lid = String(loginId).trim();
     const pw = String(password);
     const nick = String(nickname).trim();
+    const pic =
+        profile_image_url != null && String(profile_image_url).trim() !== ''
+            ? String(profile_image_url).trim()
+            : null;
     if (!lid || !pw || !nick) {
         res.status(400).json({ ok: false, error: 'empty field' });
         return;
     }
     try {
         await pool.execute(
-            'INSERT INTO `user` (login_id, password, nickname) VALUES (?, ?, ?)',
-            [lid, pw, nick],
+            'INSERT INTO `user` (login_id, password, nickname, profile_image_url) VALUES (?, ?, ?, ?)',
+            [lid, pw, nick, pic],
         );
         const [rows] = await pool.execute(
-            'SELECT id, login_id, password, nickname, role, created_at FROM `user` WHERE login_id = ? LIMIT 1',
+            'SELECT id, login_id, password, nickname, profile_image_url, role, created_at FROM `user` WHERE login_id = ? LIMIT 1',
             [lid],
         );
         const row = rows[0];
@@ -74,7 +82,7 @@ router.post('/login', async (req, res) => {
     const pw = String(password);
     try {
         const [rows] = await pool.execute(
-            'SELECT id, login_id, password, nickname, role, created_at FROM `user` WHERE login_id = ? LIMIT 1',
+            'SELECT id, login_id, password, nickname, profile_image_url, role, created_at FROM `user` WHERE login_id = ? LIMIT 1',
             [lid],
         );
         const row = rows[0];

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     login_id VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     nickname VARCHAR(100) NOT NULL,
+    profile_image_url VARCHAR(2048),
     role ENUM('owner', 'user') NOT NULL DEFAULT 'user',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_user_login_id (login_id),

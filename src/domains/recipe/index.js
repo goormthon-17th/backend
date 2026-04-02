@@ -68,14 +68,22 @@ function deriveRecipeName(refinedText) {
     return n || null;
 }
 
+function nullableUrl(v) {
+    if (v == null || String(v).trim() === '') {
+        return null;
+    }
+    return String(v).trim();
+}
+
 const RECIPE_LIST_SQL =
-    'SELECT r.id, r.user_id, u.nickname AS author_nickname, r.refined_text, r.like_count, r.image_url, YEAR(r.created_at) AS y, MONTH(r.created_at) AS m, DAY(r.created_at) AS d FROM recipe r INNER JOIN `user` u ON u.id = r.user_id';
+    'SELECT r.id, r.user_id, u.nickname AS author_nickname, u.profile_image_url AS author_profile_image_url, r.refined_text, r.like_count, r.image_url AS recipe_image_url, YEAR(r.created_at) AS y, MONTH(r.created_at) AS m, DAY(r.created_at) AS d FROM recipe r INNER JOIN `user` u ON u.id = r.user_id';
 
 function mapRecipeListRows(rows) {
     return rows.map((row) => ({
         id: Number(row.id),
         user_id: Number(row.user_id),
         nickname: row.author_nickname != null ? String(row.author_nickname) : null,
+        profile_image_url: nullableUrl(row.author_profile_image_url),
         recipe_name: deriveRecipeName(row.refined_text),
         created_at: {
             year: Number(row.y),
@@ -84,7 +92,7 @@ function mapRecipeListRows(rows) {
         },
         like_count: Number(row.like_count),
         refined_text: row.refined_text != null ? String(row.refined_text) : null,
-        image_url: row.image_url != null ? String(row.image_url) : null,
+        recipe_image_url: nullableUrl(row.recipe_image_url),
     }));
 }
 
