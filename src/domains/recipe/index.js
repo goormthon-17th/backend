@@ -178,6 +178,120 @@ function tsIso(v) {
     return v != null ? String(v) : null;
 }
 
+/** JSON body 불리언: true/false, 1/0, "t"/"f" 등 */
+function bodyBool(v, defaultVal = false) {
+    if (v === true || v === 1) {
+        return true;
+    }
+    if (v === false || v === 0) {
+        return false;
+    }
+    if (typeof v === 'string') {
+        const s = v.trim().toLowerCase();
+        if (s === 'true' || s === '1' || s === 't') {
+            return true;
+        }
+        if (s === 'false' || s === '0' || s === 'f' || s === '') {
+            return false;
+        }
+    }
+    if (v == null) {
+        return defaultVal;
+    }
+    return Boolean(v);
+}
+
+/**
+ * POST /api/recipes/:recipeId/reviews — 리뷰 작성·수정 (JWT 없으면 user_id 1, 동일 유저·레시피면 UPSERT)
+ * body: content?, emo_1|emo1, emo_2|emo2, emo_3|emo3 (boolean)
+ */
+router.post('/:recipeId/reviews', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const recipeId = Number(req.params.recipeId);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid recipeId' });
+        return;
+    }
+
+    const body = req.body || {};
+    const rawContent = body.content != null ? String(body.content) : null;
+    const content = rawContent != null && rawContent.trim() === '' ? null : rawContent;
+
+    const emo1Raw = body.emo_1 !== undefined ? body.emo_1 : body.emo1;
+    const emo2Raw = body.emo_2 !== undefined ? body.emo_2 : body.emo2;
+    const emo3Raw = body.emo_3 !== undefined ? body.emo_3 : body.emo3;
+    const emo1 = bodyBool(emo1Raw, false) ? 1 : 0;
+    const emo2 = bodyBool(emo2Raw, false) ? 1 : 0;
+    const emo3 = bodyBool(emo3Raw, false) ? 1 : 0;
+
+    const userId = resolveUserId(req);
+
+    try {
+        const [exists] = await pool.execute('SELECT id FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+        if (!exists.length) {
+            res.status(404).json({ ok: false, error: 'recipe not found' });
+            return;
+        }
+
+        const [ins] = await pool.execute(
+            `INSERT INTO recipe_review (user_id, recipe_id, content, is_liked, emo_1, emo_2, emo_3)
+             VALUES (?, ?, ?, 0, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               content = VALUES(content),
+               emo_1 = VALUES(emo_1),
+               emo_2 = VALUES(emo_2),
+               emo_3 = VALUES(emo_3),
+               updated_at = CURRENT_TIMESTAMP`,
+            [userId, recipeId, content, emo1, emo2, emo3],
+        );
+
+        const header = ins;
+        const created = header.affectedRows === 1;
+
+        const [savedRows] = await pool.execute(
+            `SELECT rv.id, rv.user_id, rv.content, rv.is_liked, rv.emo_1, rv.emo_2, rv.emo_3, rv.created_at, rv.updated_at,
+                u.nickname AS reviewer_nickname
+             FROM recipe_review rv
+             INNER JOIN \`user\` u ON u.id = rv.user_id
+             WHERE rv.user_id = ? AND rv.recipe_id = ?
+             LIMIT 1`,
+            [userId, recipeId],
+        );
+        const row = savedRows[0];
+
+        const review = {
+            id: Number(row.id),
+            user_id: Number(row.user_id),
+            nickname: String(row.reviewer_nickname),
+            content: row.content != null ? String(row.content) : null,
+            is_liked: tinyToBool(row.is_liked),
+            emo_1: tinyToBool(row.emo_1),
+            emo_2: tinyToBool(row.emo_2),
+            emo_3: tinyToBool(row.emo_3),
+            created_at: tsIso(row.created_at),
+            updated_at: tsIso(row.updated_at),
+        };
+
+        res.status(created ? 201 : 200).json({
+            ok: true,
+            created,
+            recipe_id: recipeId,
+            review,
+        });
+    } catch (e) {
+        if (e.code === 'ER_NO_REFERENCED_ROW_2' || e.errno === 1452) {
+            res.status(400).json({ ok: false, error: 'invalid user_id (user not found)' });
+            return;
+        }
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
 /** GET /api/recipes/:recipeId — 레시피 상세 + 리뷰 전체 */
 router.get('/:recipeId', async (req, res) => {
     const pool = getPool();

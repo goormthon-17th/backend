@@ -256,6 +256,51 @@
         }
       }
     },
+    "/api/recipes/{recipeId}/reviews": {
+      "post": {
+        "tags": ["Recipe"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "리뷰 작성·같은 유저 재요청 시 수정 (JWT 없으면 user_id 1)",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>` 또는 JWT만"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": { "type": "string", "description": "리뷰 본문 (선택)" },
+                  "emo_1": { "type": "boolean", "description": "또는 emo1" },
+                  "emo_2": { "type": "boolean" },
+                  "emo_3": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "신규 — ok, created true, recipe_id, review" },
+          "200": { "description": "수정(UPSERT) — created false" },
+          "400": { "description": "FK 등" },
+          "404": { "description": "레시피 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes": {
       "post": {
         "tags": ["Recipe"],
