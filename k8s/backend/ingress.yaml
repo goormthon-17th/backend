@@ -16,3 +16,11 @@ spec:
                             name: backend-service
                             port:
                                 number: 80
+                  # express.static — POST /api/upload/image 로 저장한 파일 조회
+                  - path: /uploads
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: backend-service
+                            port:
+                                number: 80
