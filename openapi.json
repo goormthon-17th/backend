@@ -115,7 +115,8 @@
     "/api/recipes": {
       "post": {
         "tags": ["Recipe"],
-        "summary": "레시피 등록 (Authorization Bearer에 로그인 JWT — 없으면 user_id 1)",
+        "security": [{ "bearerAuth": [] }],
+        "summary": "레시피 등록 (Swagger 상단 Authorize에 JWT 넣거나 curl에 -H Authorization: Bearer … — 없으면 user_id 1)",
         "parameters": [
           {
             "name": "Authorization",
@@ -184,6 +185,16 @@
           "502": { "description": "Gemini 오류" },
           "503": { "description": "API 키 없음" }
         }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "POST /api/auth/login 의 응답 token 값만 입력 (Bearer 접두어는 Swagger가 붙임)"
       }
     }
   }
