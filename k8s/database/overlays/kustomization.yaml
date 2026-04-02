@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - ../base
+
+namespace: goormthon-4
+
+images:
+    - name: mysql
+      newTag: lts
+
+patches:
+    - target:
+          kind: Secret
+          name: mysql-secret
+      patch: |
+          - op: replace
+            path: /stringData
+            value:
+              MYSQL_USER: myuser
+              MYSQL_PASSWORD: mypass123
+              MYSQL_DATABASE: mydb
