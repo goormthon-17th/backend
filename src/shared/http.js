@@ -43,7 +43,8 @@ function applyNotFound(app) {
             pth !== '/api/db/ping' &&
             !pth.startsWith('/api/docs') &&
             !pth.startsWith('/api/ai/') &&
-            !pth.startsWith('/api/auth/')
+            !pth.startsWith('/api/auth/') &&
+            !pth.startsWith('/api/recipes')
         ) {
             res.status(404).json({ ok: false, error: 'not found', path: pth });
             return;

@@ -11,7 +11,8 @@
     { "name": "AI", "description": "Gemini" },
     { "name": "Database", "description": "MySQL" },
     { "name": "Health", "description": "헬스" },
-    { "name": "Auth", "description": "회원" }
+    { "name": "Auth", "description": "회원" },
+    { "name": "Recipe", "description": "레시피" }
   ],
   "paths": {
     "/api": {
@@ -107,6 +108,42 @@
           "200": { "description": "OK — token, user" },
           "400": { "description": "Bad request" },
           "401": { "description": "인증 실패" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
+    "/api/recipes": {
+      "post": {
+        "tags": ["Recipe"],
+        "summary": "레시피 등록 (JWT 있으면 user_id, 없으면 1)",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer <login JWT>"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "raw_text": { "type": "string" },
+                  "refined_text": { "type": "string" },
+                  "audio_url": { "type": "string" },
+                  "jwt": { "type": "string", "description": "선택. Bearer 대신 body로 토큰" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created — id, user_id" },
+          "400": { "description": "FK 등" },
           "503": { "description": "DB 미설정" }
         }
       }

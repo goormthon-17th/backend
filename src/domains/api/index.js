@@ -6,6 +6,7 @@ const express = require('express');
 const aiRouter = require('../ai');
 const authRouter = require('../auth');
 const databaseRouter = require('../database');
+const recipeRouter = require('../recipe');
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.get('/', (req, res) => {
 
 router.use('/auth', authRouter);
 router.use('/ai', aiRouter);
+router.use('/recipes', recipeRouter);
 router.use('/db', databaseRouter);
 
 module.exports = router;

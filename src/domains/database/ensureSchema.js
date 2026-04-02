@@ -55,6 +55,14 @@ async function ensureSchema() {
     for (const sql of TABLE_DDLS) {
         await pool.query(sql);
     }
+    // recipe 비로그인 시 user_id=1 FK용 (이미 id=1 있으면 스킵)
+    const [existing] = await pool.query('SELECT id FROM `user` WHERE id = 1 LIMIT 1');
+    if (!existing.length) {
+        await pool.execute(
+            'INSERT INTO `user` (id, login_id, password, nickname) VALUES (1, ?, ?, ?)',
+            ['__system_uid_1__', '-', 'anonymous'],
+        );
+    }
 }
 
 module.exports = { ensureSchema };
