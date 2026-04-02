@@ -62,15 +62,6 @@ const TABLE_DDLS = [
     CONSTRAINT fk_subscribe_following FOREIGN KEY (following_id) REFERENCES \`user\` (id) ON DELETE CASCADE,
     CONSTRAINT chk_subscribe_not_self CHECK (follower_id <> following_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
-    `CREATE TABLE IF NOT EXISTS environment (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    gem TEXT,
-    \`invoke\` TEXT,
-    secret TEXT,
-    \`map\` TEXT,
-    \`back\` TEXT,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 async function ensureSchema() {
@@ -80,16 +71,6 @@ async function ensureSchema() {
     }
     for (const sql of TABLE_DDLS) {
         await pool.query(sql);
-    }
-    try {
-        await pool.query(
-            'ALTER TABLE environment MODIFY gem TEXT, MODIFY `invoke` TEXT, MODIFY secret TEXT, MODIFY `map` TEXT, MODIFY `back` TEXT',
-        );
-    } catch (e) {
-        const noTable = e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146;
-        if (!noTable) {
-            throw e;
-        }
     }
     try {
         await pool.query('ALTER TABLE recipe DROP COLUMN audio_url');

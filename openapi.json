@@ -13,8 +13,7 @@
     { "name": "Health", "description": "헬스" },
     { "name": "Auth", "description": "회원" },
     { "name": "Recipe", "description": "레시피" },
-    { "name": "User", "description": "유저 프로필" },
-    { "name": "Env", "description": "환경 설정 (environment 테이블)" }
+    { "name": "User", "description": "유저 프로필" }
   ],
   "paths": {
     "/api": {
@@ -37,76 +36,6 @@
               }
             }
           }
-        }
-      }
-    },
-    "/api/env": {
-      "get": {
-        "tags": ["Env"],
-        "summary": "환경 설정 조회 (단일 행)",
-        "responses": {
-          "200": {
-            "description": "OK — ok, gem, invoke, secret, map, back",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "gem": { "type": "string", "nullable": true },
-                    "invoke": { "type": "string", "nullable": true },
-                    "secret": { "type": "string", "nullable": true },
-                    "map": { "type": "string", "nullable": true },
-                    "back": { "type": "string", "nullable": true }
-                  }
-                }
-              }
-            }
-          },
-          "500": { "description": "서버 오류" },
-          "503": { "description": "DB 미설정" }
-        }
-      },
-      "post": {
-        "tags": ["Env"],
-        "summary": "환경 설정 갱신 (보낸 필드만 덮어쓰기, 없으면 행 생성)",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "gem": { "type": "string", "nullable": true },
-                  "invoke": { "type": "string", "nullable": true },
-                  "secret": { "type": "string", "nullable": true },
-                  "map": { "type": "string", "nullable": true },
-                  "back": { "type": "string", "nullable": true }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK — 갱신 후 전체 필드",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "gem": { "type": "string", "nullable": true },
-                    "invoke": { "type": "string", "nullable": true },
-                    "secret": { "type": "string", "nullable": true },
-                    "map": { "type": "string", "nullable": true },
-                    "back": { "type": "string", "nullable": true }
-                  }
-                }
-              }
-            }
-          },
-          "500": { "description": "서버 오류" },
-          "503": { "description": "DB 미설정" }
         }
       }
     },

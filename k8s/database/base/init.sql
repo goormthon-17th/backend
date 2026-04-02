@@ -67,13 +67,3 @@ CREATE TABLE IF NOT EXISTS user_subscribe (
     CONSTRAINT fk_subscribe_following FOREIGN KEY (following_id) REFERENCES `user` (id) ON DELETE CASCADE,
     CONSTRAINT chk_subscribe_not_self CHECK (follower_id <> following_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS environment (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    gem TEXT,
-    `invoke` TEXT,
-    secret TEXT,
-    `map` TEXT,
-    `back` TEXT,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
