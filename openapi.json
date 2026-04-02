@@ -409,7 +409,7 @@
     "/api/voice": {
       "post": {
         "tags": ["Voice"],
-        "summary": "음성 파일 업로드 (multipart/form-data, 필드명 audio)",
+        "summary": "음성 업로드 → NCP Clova STT → 인식 텍스트 반환 (.env: NEXT_PUBLIC_CLOVA_INVOKE_URL, NEXT_PUBLIC_CLOVA_SECRET_KEY)",
         "requestBody": {
           "required": true,
           "content": {
@@ -430,13 +430,14 @@
         },
         "responses": {
           "200": {
-            "description": "수신 완료 — 메타데이터만 반환 (본문은 서버 메모리 buffer)",
+            "description": "STT 성공 — text(제주어 교정 적용), 파일 메타데이터",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "ok": { "type": "boolean" },
+                    "text": { "type": "string" },
                     "originalName": { "type": "string" },
                     "mimeType": { "type": "string" },
                     "size": { "type": "integer" }
@@ -446,7 +447,9 @@
             }
           },
           "400": { "description": "audio 필드 없음 또는 multer 오류" },
-          "413": { "description": "파일 크기 초과 (기본 30MB, VOICE_UPLOAD_MAX_BYTES로 조정)" }
+          "413": { "description": "파일 크기 초과 (기본 30MB, VOICE_UPLOAD_MAX_BYTES로 조정)" },
+          "502": { "description": "Clova 호출 실패 또는 비 JSON 응답" },
+          "503": { "description": "Clova 환경변수 미설정" }
         }
       }
     }

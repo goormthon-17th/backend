@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+const { transcribeWithClova } = require('./clovaStt');
 
 const router = express.Router();
 
@@ -34,9 +35,9 @@ function runSingleAudio(req, res, next) {
 
 /**
  * POST /api/voice — multipart/form-data, 필드명 `audio`에 음성 파일 1개
- * (메모리 버퍼로 수신; 이후 STT 등 파이프라인에 연결 가능)
+ * Clova Speech (`NEXT_PUBLIC_CLOVA_*`)로 STT 후 `text` 반환
  */
-router.post('/', runSingleAudio, (req, res) => {
+router.post('/', runSingleAudio, async (req, res) => {
     const file = req.file;
     if (!file) {
         res.status(400).json({
@@ -46,8 +47,24 @@ router.post('/', runSingleAudio, (req, res) => {
         return;
     }
 
+    const stt = await transcribeWithClova({
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+    });
+
+    if (!stt.ok) {
+        const body = { ok: false, error: stt.error };
+        if (stt.raw !== undefined) {
+            body.clova = stt.raw;
+        }
+        res.status(stt.status).json(body);
+        return;
+    }
+
     res.status(200).json({
         ok: true,
+        text: stt.text,
         originalName: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
