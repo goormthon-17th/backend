@@ -10,7 +10,8 @@
     { "name": "API", "description": "상태" },
     { "name": "AI", "description": "Gemini" },
     { "name": "Database", "description": "MySQL" },
-    { "name": "Health", "description": "헬스" }
+    { "name": "Health", "description": "헬스" },
+    { "name": "Auth", "description": "회원" }
   ],
   "paths": {
     "/api": {
@@ -52,6 +53,61 @@
         "summary": "Liveness",
         "responses": {
           "200": { "description": "OK" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "회원가입 (비밀번호 평문 저장)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["loginId", "password", "nickname"],
+                "properties": {
+                  "loginId": { "type": "string" },
+                  "password": { "type": "string" },
+                  "nickname": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Bad request" },
+          "409": { "description": "loginId 중복" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "로그인 → JWT (페이로드에 user 전체 필드)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["loginId", "password"],
+                "properties": {
+                  "loginId": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — token, user" },
+          "400": { "description": "Bad request" },
+          "401": { "description": "인증 실패" },
+          "503": { "description": "DB 미설정" }
         }
       }
     },

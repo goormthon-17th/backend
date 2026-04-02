@@ -5,12 +5,12 @@ USE mydb;
 -- `user` is reserved word → 백틱 사용
 CREATE TABLE IF NOT EXISTS `user` (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
+    login_id VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     nickname VARCHAR(100) NOT NULL,
     role ENUM('owner', 'user') NOT NULL DEFAULT 'user',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_user_email (email),
+    UNIQUE KEY uq_user_login_id (login_id),
     KEY idx_user_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
