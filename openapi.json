@@ -59,6 +59,37 @@
           "200": { "description": "OK" }
         }
       }
+    },
+    "/api/test-table": {
+      "get": {
+        "summary": "DB `test` 테이블 조회",
+        "responses": {
+          "200": { "description": "OK" },
+          "503": { "description": "DB 미설정" }
+        }
+      },
+      "post": {
+        "summary": "DB `test` 테이블에 행 추가",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["test"],
+                "properties": {
+                  "test": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Bad request" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
     }
   }
 }

@@ -17,6 +17,14 @@ spec:
                   image: 837126493345.dkr.ecr.ap-northeast-2.amazonaws.com/goormthon-4/backend:build-10
                   ports:
                       - containerPort: 8080
+                  env:
+                      - name: MYSQL_HOST
+                        value: mysql
+                      - name: MYSQL_PORT
+                        value: '3306'
+                  envFrom:
+                      - secretRef:
+                            name: mysql-secret
                   volumeMounts:
                       - name: config-volume
                         mountPath: /app/config
