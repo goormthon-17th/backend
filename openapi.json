@@ -113,6 +113,58 @@
         }
       }
     },
+    "/api/users/following": {
+      "get": {
+        "tags": ["User"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "내가 구독 중인 유저 목록 최대 20 (user_id, nickname, 대표 recipe image_url)",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>` 또는 JWT만 — 없으면 follower 1 기준"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok, users[] — user_id, nickname, image_url(레시피 썸네일 URL 또는 null)"
+          },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
+    "/api/users/{userId}/subscribe": {
+      "post": {
+        "tags": ["User"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "구독 토글 (JWT 없으면 follower_id 1 — 구독 201, 해제 200)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 },
+            "description": "구독 대상 사용자 id (following_id)"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>` 또는 JWT만"
+          }
+        ],
+        "responses": {
+          "201": { "description": "구독됨 — subscribed true, follower_id, following_id" },
+          "200": { "description": "구독 해제됨 — subscribed false" },
+          "400": { "description": "본인 구독 / 잘못된 id / FK" },
+          "404": { "description": "대상 user 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/users/{userId}": {
       "get": {
         "tags": ["User"],
@@ -141,7 +193,7 @@
         "summary": "레시피 최신순 최대 20개",
         "responses": {
           "200": {
-            "description": "ok, recipes[] (최대 20건) — id, recipe_name, created_at{year,month,day}, like_count, refined_text, image_url"
+            "description": "ok, recipes[] — id, user_id, nickname(작성자), recipe_name, created_at, like_count, refined_text, image_url"
           },
           "503": { "description": "DB 미설정" }
         }
@@ -153,7 +205,7 @@
         "summary": "레시피 좋아요순 최대 20개 (동점 시 최신순)",
         "responses": {
           "200": {
-            "description": "ok, recipes[] (최대 20건) — 필드 동일"
+            "description": "ok, recipes[] — /latest 와 동일 필드 (user_id, nickname 포함)"
           },
           "503": { "description": "DB 미설정" }
         }
@@ -173,7 +225,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ok, user_id, recipes[] — latest 목록과 동일 필드"
+            "description": "ok, user_id(프로필 주인), recipes[] — 항목마다 작성자 user_id·nickname 포함"
           },
           "400": { "description": "잘못된 userId" },
           "404": { "description": "user 없음" },

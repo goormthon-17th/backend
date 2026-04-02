@@ -69,11 +69,13 @@ function deriveRecipeName(refinedText) {
 }
 
 const RECIPE_LIST_SQL =
-    'SELECT id, refined_text, like_count, image_url, YEAR(created_at) AS y, MONTH(created_at) AS m, DAY(created_at) AS d FROM recipe';
+    'SELECT r.id, r.user_id, u.nickname AS author_nickname, r.refined_text, r.like_count, r.image_url, YEAR(r.created_at) AS y, MONTH(r.created_at) AS m, DAY(r.created_at) AS d FROM recipe r INNER JOIN `user` u ON u.id = r.user_id';
 
 function mapRecipeListRows(rows) {
     return rows.map((row) => ({
         id: Number(row.id),
+        user_id: Number(row.user_id),
+        nickname: row.author_nickname != null ? String(row.author_nickname) : null,
         recipe_name: deriveRecipeName(row.refined_text),
         created_at: {
             year: Number(row.y),
@@ -96,7 +98,7 @@ router.get('/latest', async (req, res) => {
 
     try {
         const [rows] = await pool.execute(
-            `${RECIPE_LIST_SQL} ORDER BY created_at DESC, id DESC LIMIT 20`,
+            `${RECIPE_LIST_SQL} ORDER BY r.created_at DESC, r.id DESC LIMIT 20`,
         );
         res.json({ ok: true, recipes: mapRecipeListRows(rows) });
     } catch (e) {
@@ -114,7 +116,7 @@ router.get('/by-likes', async (req, res) => {
 
     try {
         const [rows] = await pool.execute(
-            `${RECIPE_LIST_SQL} ORDER BY like_count DESC, created_at DESC, id DESC LIMIT 20`,
+            `${RECIPE_LIST_SQL} ORDER BY r.like_count DESC, r.created_at DESC, r.id DESC LIMIT 20`,
         );
         res.json({ ok: true, recipes: mapRecipeListRows(rows) });
     } catch (e) {
@@ -144,7 +146,7 @@ router.get('/user/:userId', async (req, res) => {
         }
 
         const [rows] = await pool.execute(
-            `${RECIPE_LIST_SQL} WHERE user_id = ? ORDER BY created_at DESC, id DESC`,
+            `${RECIPE_LIST_SQL} WHERE r.user_id = ? ORDER BY r.created_at DESC, r.id DESC`,
             [userId],
         );
         res.json({
