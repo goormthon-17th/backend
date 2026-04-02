@@ -148,6 +148,35 @@
         }
       }
     },
+    "/api/recipes/{recipeId}/like": {
+      "post": {
+        "tags": ["Recipe"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "레시피 좋아요 (JWT 없으면 user_id 1, 중복 시 alreadyLiked)",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>` 또는 JWT만"
+          }
+        ],
+        "responses": {
+          "201": { "description": "좋아요 반영 — like_count 증가" },
+          "200": { "description": "이미 좋아요한 경우 (alreadyLiked)" },
+          "400": { "description": "잘못된 recipeId / user FK" },
+          "404": { "description": "레시피 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/ai/generate": {
       "post": {
         "tags": ["AI"],

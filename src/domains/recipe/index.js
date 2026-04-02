@@ -80,4 +80,71 @@ router.post('/', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/recipes/:recipeId/like — recipe_like 행 추가 + recipe.like_count +1 (중복 시 alreadyLiked)
+ */
+router.post('/:recipeId/like', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const recipeId = Number(req.params.recipeId);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid recipeId' });
+        return;
+    }
+
+    const [exists] = await pool.execute('SELECT id, like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+    if (!exists.length) {
+        res.status(404).json({ ok: false, error: 'recipe not found' });
+        return;
+    }
+
+    const userId = resolveUserId(req);
+    const conn = await pool.getConnection();
+
+    try {
+        await conn.beginTransaction();
+        try {
+            await conn.execute('INSERT INTO recipe_like (user_id, recipe_id) VALUES (?, ?)', [
+                userId,
+                recipeId,
+            ]);
+        } catch (insertErr) {
+            await conn.rollback();
+            if (insertErr.code === 'ER_DUP_ENTRY' || insertErr.errno === 1062) {
+                res.json({
+                    ok: true,
+                    alreadyLiked: true,
+                    like_count: Number(exists[0].like_count),
+                    user_id: userId,
+                });
+                return;
+            }
+            if (insertErr.code === 'ER_NO_REFERENCED_ROW_2' || insertErr.errno === 1452) {
+                res.status(400).json({ ok: false, error: 'invalid user_id (user not found)' });
+                return;
+            }
+            throw insertErr;
+        }
+
+        await conn.execute('UPDATE recipe SET like_count = like_count + 1 WHERE id = ?', [recipeId]);
+        const [after] = await conn.execute('SELECT like_count FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+        await conn.commit();
+        res.status(201).json({
+            ok: true,
+            alreadyLiked: false,
+            like_count: Number(after[0].like_count),
+            user_id: userId,
+        });
+    } catch (e) {
+        await conn.rollback();
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    } finally {
+        conn.release();
+    }
+});
+
 module.exports = router;
