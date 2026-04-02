@@ -1,50 +1,64 @@
-const http = require('http');
+const express = require('express');
+const swaggerUi = require('swagger-ui-express');
 
 const PORT = Number(process.env.PORT) || 8080;
-
-/** push 후 반영 여부 확인용 — 배포 테스트할 때마다 숫자만 바꿔도 됨 */
 const DEPLOY_CHECK = 'deploy-verify-1';
 
-const server = http.createServer((req, res) => {
-    const url = req.url || '/';
-    const pathname = url.split('?')[0];
+const openapi = require('./openapi.json');
 
-    // Ingress는 /api 프리픽스만 넘기므로 외부에서는 /api/test 로 접근
-    if (pathname === '/api/test') {
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-            JSON.stringify({
-                ok: true,
-                endpoint: '/api/test',
-                deployCheck: DEPLOY_CHECK,
-                at: new Date().toISOString(),
-            }),
-        );
-        return;
-    }
+const app = express();
 
-    if (pathname === '/api') {
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, message: 'backend is running', path: pathname }));
-        return;
-    }
+app.use(
+    '/api/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openapi, {
+        customSiteTitle: 'API Docs',
+    }),
+);
 
-    if (pathname.startsWith('/api/')) {
-        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: false, error: 'not found', path: pathname }));
-        return;
-    }
-
-    if (pathname === '/health') {
-        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('ok');
-        return;
-    }
-
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('not found');
+app.get('/openapi.json', (req, res) => {
+    res.json(openapi);
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+app.get('/api/test', (req, res) => {
+    res.json({
+        ok: true,
+        endpoint: '/api/test',
+        deployCheck: DEPLOY_CHECK,
+        at: new Date().toISOString(),
+    });
+});
+
+app.get('/test', (req, res) => {
+    res.json({
+        ok: true,
+        endpoint: '/test',
+        deployCheck: DEPLOY_CHECK,
+        at: new Date().toISOString(),
+    });
+});
+
+app.get('/api', (req, res) => {
+    res.json({ ok: true, message: 'backend is running', path: '/api' });
+});
+
+app.get('/health', (req, res) => {
+    res.type('text/plain').send('ok');
+});
+
+app.use((req, res, next) => {
+    const p = req.path.split('?')[0];
+    if (p.startsWith('/api/') && p !== '/api/test' && !p.startsWith('/api/docs')) {
+        res.status(404).json({ ok: false, error: 'not found', path: p });
+        return;
+    }
+    next();
+});
+
+app.use((req, res) => {
+    res.status(404).type('text/plain').send('not found');
+});
+
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`listening on 0.0.0.0:${PORT}`);
 });

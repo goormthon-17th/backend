@@ -1,0 +1,64 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Backend API",
+    "version": "1.0.0",
+    "description": "goormthon backend"
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/api": {
+      "get": {
+        "summary": "상태 확인",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test": {
+      "get": {
+        "summary": "배포/헬스 확인",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "endpoint": { "type": "string" },
+                    "deployCheck": { "type": "string" },
+                    "at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Liveness",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    }
+  }
+}
