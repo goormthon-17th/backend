@@ -409,7 +409,7 @@
     "/api/voice": {
       "post": {
         "tags": ["Voice"],
-        "summary": "음성 → STT → Gemini 정제, 성공 시 본문은 정제 텍스트만 (text/plain)",
+        "summary": "음성 → STT → 정제 → TTS; 성공 응답은 multipart (필드 text, audio wav 파일)",
         "requestBody": {
           "required": true,
           "content": {
@@ -430,10 +430,17 @@
         },
         "responses": {
           "200": {
-            "description": "정제된 레시피 카드 문자열만 (Content-Type: text/plain; charset=utf-8)",
+            "description": "multipart/form-data — name=text(정제 문자열), name=audio(filename recipe.wav, audio/wav). TTS 실패 시 audio 없음, name=tts_error",
             "content": {
-              "text/plain": {
-                "schema": { "type": "string" }
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": { "type": "string" },
+                    "audio": { "type": "string", "format": "binary", "description": "WAV" },
+                    "tts_error": { "type": "string" }
+                  }
+                }
               }
             }
           },

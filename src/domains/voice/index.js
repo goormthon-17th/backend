@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const { generateFromText } = require('../ai/geminiService');
+const { synthesizeToWav } = require('./geminiTts');
+const { buildMultipartVoiceBody } = require('./multipartVoiceResponse');
 const { transcribeWithClova } = require('./clovaStt');
 
 const router = express.Router();
@@ -31,8 +33,8 @@ function runSingleAudio(req, res, next) {
 }
 
 /**
- * POST /api/voice — multipart/form-data, 필드명 `audio`
- * Clova STT → Gemini(refinePrompt) 정제 후 200 본문은 정제 텍스트만 (text/plain)
+ * POST /api/voice — 요청: multipart 필드 `audio`
+ * 성공 시 응답도 multipart/form-data: `text`(정제 문자열), `audio`(WAV 파일, TTS 실패 시 생략)
  */
 router.post('/', runSingleAudio, async (req, res) => {
     const file = req.file;
@@ -58,7 +60,13 @@ router.post('/', runSingleAudio, async (req, res) => {
         return;
     }
 
-    res.status(200).type('text/plain; charset=utf-8').send(refined.text);
+    const tts = await synthesizeToWav(refined.text);
+    const wavBuf = tts.ok ? tts.buffer : null;
+    const ttsErr = tts.ok ? null : tts.error;
+    const { boundary, body } = buildMultipartVoiceBody(refined.text, wavBuf, ttsErr);
+
+    res.status(200).setHeader('Content-Type', `multipart/form-data; boundary=${boundary}`);
+    res.send(body);
 });
 
 module.exports = router;
