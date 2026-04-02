@@ -96,6 +96,31 @@ function mapRecipeListRows(rows) {
     }));
 }
 
+/** SQL LIKE 패턴용 % _ \ 이스케이프 */
+function escapeLikePattern(ch) {
+    return String(ch).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+/**
+ * /latest 의 recipe_name 기준 — 키워드(공백 제거 연속) 전체 포함 또는 글자 하나라도 포함
+ */
+function recipeNameMatchesKeyword(recipeName, keyword) {
+    if (recipeName == null || keyword == null) {
+        return false;
+    }
+    const name = String(recipeName);
+    const nl = name.toLowerCase();
+    const kCompact = String(keyword).replace(/\s+/g, '').trim().toLowerCase();
+    if (!kCompact) {
+        return false;
+    }
+    if (nl.includes(kCompact)) {
+        return true;
+    }
+    const uniq = [...new Set(Array.from(kCompact))];
+    return uniq.some((ch) => nl.includes(ch));
+}
+
 /** GET /api/recipes/latest — 최신순 최대 20개 */
 router.get('/latest', async (req, res) => {
     const pool = getPool();
@@ -175,6 +200,56 @@ router.get('/liked', async (req, res) => {
             [userId],
         );
         res.json({ ok: true, recipes: mapLikedByMeRows(rows) });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
+/**
+ * GET /api/recipes/search?q= 또는 keyword=
+ * 표시용 이름(recipe_name)이 검색어와 일치: 연속 문자열 포함 또는(공백 제외) 한 글자라도 포함. 응답 형태는 /latest 와 동일
+ */
+router.get('/search', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const raw = req.query.q != null ? req.query.q : req.query.keyword;
+    const keyword = raw != null ? String(raw).trim() : '';
+    if (!keyword) {
+        res.status(400).json({ ok: false, error: 'query param q or keyword is required' });
+        return;
+    }
+    if (keyword.length > 200) {
+        res.status(400).json({ ok: false, error: 'keyword too long' });
+        return;
+    }
+
+    const uniqChars = [...new Set(Array.from(keyword.replace(/\s/g, '')))].slice(0, 80);
+    if (!uniqChars.length) {
+        res.json({ ok: true, recipes: [], keyword });
+        return;
+    }
+
+    const likeClauseParts = [];
+    const likeParams = [];
+    for (const ch of uniqChars) {
+        const pat = `%${escapeLikePattern(ch)}%`;
+        likeClauseParts.push(
+            '(COALESCE(r.refined_text, \'\') LIKE ? ESCAPE \'\\\\\' OR COALESCE(r.raw_text, \'\') LIKE ? ESCAPE \'\\\\\')',
+        );
+        likeParams.push(pat, pat);
+    }
+
+    const sql = `${RECIPE_LIST_SQL} WHERE (${likeClauseParts.join(' OR ')}) ORDER BY r.created_at DESC, r.id DESC LIMIT 400`;
+
+    try {
+        const [rows] = await pool.execute(sql, likeParams);
+        const mapped = mapRecipeListRows(rows);
+        const recipes = mapped.filter((r) => recipeNameMatchesKeyword(r.recipe_name, keyword));
+        res.json({ ok: true, recipes });
     } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
     }

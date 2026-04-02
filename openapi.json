@@ -242,6 +242,35 @@
         }
       }
     },
+    "/api/recipes/search": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "키워드 검색 — recipe_name에 연속 일치 또는 글자 하나라도 일치. 응답 recipes[]는 /latest 와 동일",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "검색어 (keyword 와 동일 의미, 둘 중 하나 필수)"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "검색어 (q 와 동일)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok, recipes[] — /latest 와 동일 필드"
+          },
+          "400": { "description": "q·keyword 없음 또는 너무 김" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes/user/{userId}": {
       "get": {
         "tags": ["Recipe"],
