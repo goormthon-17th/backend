@@ -1,5 +1,7 @@
 const express = require('express');
 const config = require('../../config');
+const aiRouter = require('../ai');
+const databaseRouter = require('../database');
 
 const router = express.Router();
 
@@ -16,7 +18,7 @@ router.get('/test', (req, res) => {
     });
 });
 
-router.use('/ai', require('./ai.routes'));
-router.use('/db', require('./db.routes'));
+router.use('/ai', aiRouter);
+router.use('/db', databaseRouter);
 
 module.exports = router;

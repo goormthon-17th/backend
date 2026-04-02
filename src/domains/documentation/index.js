@@ -1,6 +1,6 @@
 const swaggerUi = require('swagger-ui-express');
 
-function mountSwagger(app, openapi) {
+function register(app, openapi) {
     app.use(
         '/api/docs',
         swaggerUi.serve,
@@ -13,4 +13,4 @@ function mountSwagger(app, openapi) {
     });
 }
 
-module.exports = { mountSwagger };
+module.exports = { register };

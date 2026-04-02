@@ -1,5 +1,5 @@
 const express = require('express');
-const { getPool } = require('../../services/mysqlPool');
+const { getPool } = require('./mysqlPool');
 
 const router = express.Router();
 

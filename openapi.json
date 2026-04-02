@@ -69,9 +69,51 @@
         }
       }
     },
+    "/api/ai/generate": {
+      "post": {
+        "summary": "지시문에 따라 입력 텍스트 기반 결과 텍스트 생성",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string", "description": "프론트에서 보낸 원문" },
+                  "instruction": {
+                    "type": "string",
+                    "description": "프롬프트 지시문(선택). 없으면 서버 기본 지시문만 적용"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "resultText": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request" },
+          "502": { "description": "Gemini 오류" },
+          "503": { "description": "GEMINI_API_KEY 없음" }
+        }
+      }
+    },
     "/api/ai/refine": {
       "post": {
-        "summary": "텍스트 Gemini 정제",
+        "summary": "텍스트 Gemini 정제(호환용, instruction 없음)",
         "requestBody": {
           "required": true,
           "content": {

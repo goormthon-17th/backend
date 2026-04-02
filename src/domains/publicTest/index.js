@@ -1,7 +1,7 @@
 const express = require('express');
-const config = require('../config');
+const config = require('../../config');
 
-/** Ingress에 /test 경로만 열었을 때 */
+/** Ingress에서 /test 만 열었을 때 */
 const router = express.Router();
 
 router.get('/', (req, res) => {

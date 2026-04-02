@@ -1,25 +1,24 @@
 const express = require('express');
 const config = require('./config');
-const { mountCors } = require('./middleware/cors');
-const { mountSwagger } = require('./middleware/swagger');
-const { mountNotFound } = require('./middleware/notFound');
-const apiRouter = require('./routes/api');
-const healthRouter = require('./routes/health');
-const ingressTestRouter = require('./routes/ingressTest');
+const { applyCors, applyBodyParser, applyNotFound } = require('./shared/http');
+const { register: registerDocumentation } = require('./domains/documentation');
+const apiRouter = require('./domains/api');
+const healthRouter = require('./domains/health');
+const publicTestRouter = require('./domains/publicTest');
 
 function createApp() {
     const app = express();
 
-    mountCors(app);
-    app.use(express.json());
+    applyCors(app);
+    applyBodyParser(app);
 
-    mountSwagger(app, config.openapi);
+    registerDocumentation(app, config.openapi);
 
     app.use('/api', apiRouter);
     app.use('/health', healthRouter);
-    app.use('/test', ingressTestRouter);
+    app.use('/test', publicTestRouter);
 
-    mountNotFound(app);
+    applyNotFound(app);
 
     return app;
 }
