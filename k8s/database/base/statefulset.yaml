@@ -30,7 +30,7 @@ spec:
                         valueFrom:
                             secretKeyRef:
                                 name: mysql-secret
-                                key: qwer1234
+                                key: MYSQL_PASSWORD
                       - name: MYSQL_DATABASE
                         valueFrom:
                             secretKeyRef:
