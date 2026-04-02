@@ -39,6 +39,23 @@ CREATE TABLE IF NOT EXISTS recipe_like (
     CONSTRAINT fk_recipe_like_recipe FOREIGN KEY (recipe_id) REFERENCES recipe (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS recipe_review (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    recipe_id BIGINT UNSIGNED NOT NULL,
+    content TEXT,
+    is_liked TINYINT(1) NOT NULL DEFAULT 0,
+    emo_1 TINYINT(1) NOT NULL DEFAULT 0,
+    emo_2 TINYINT(1) NOT NULL DEFAULT 0,
+    emo_3 TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_recipe_review_user_recipe (user_id, recipe_id),
+    KEY idx_recipe_review_recipe (recipe_id),
+    CONSTRAINT fk_recipe_review_user FOREIGN KEY (user_id) REFERENCES `user` (id) ON DELETE CASCADE,
+    CONSTRAINT fk_recipe_review_recipe FOREIGN KEY (recipe_id) REFERENCES recipe (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS user_subscribe (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     follower_id BIGINT UNSIGNED NOT NULL,

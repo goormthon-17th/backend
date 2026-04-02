@@ -167,6 +167,96 @@ router.get('/user/:userId', async (req, res) => {
     }
 });
 
+function tinyToBool(v) {
+    return Boolean(Number(v));
+}
+
+function tsIso(v) {
+    if (v instanceof Date) {
+        return v.toISOString();
+    }
+    return v != null ? String(v) : null;
+}
+
+/** GET /api/recipes/:recipeId — 레시피 상세 + 리뷰 전체 */
+router.get('/:recipeId', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const recipeId = Number(req.params.recipeId);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid recipeId' });
+        return;
+    }
+
+    try {
+        const [rows] = await pool.execute(
+            `SELECT r.id, r.user_id, r.raw_text, r.refined_text, r.image_url, r.like_count,
+                YEAR(r.created_at) AS y, MONTH(r.created_at) AS m, DAY(r.created_at) AS d,
+                u.nickname AS author_nickname, u.profile_image_url AS author_profile_image_url
+            FROM recipe r
+            INNER JOIN \`user\` u ON u.id = r.user_id
+            WHERE r.id = ?
+            LIMIT 1`,
+            [recipeId],
+        );
+
+        if (!rows.length) {
+            res.status(404).json({ ok: false, error: 'recipe not found' });
+            return;
+        }
+
+        const rrow = rows[0];
+
+        const [reviewRows] = await pool.execute(
+            `SELECT rv.id, rv.user_id, rv.content, rv.is_liked, rv.emo_1, rv.emo_2, rv.emo_3, rv.created_at, rv.updated_at,
+                u.nickname AS reviewer_nickname
+            FROM recipe_review rv
+            INNER JOIN \`user\` u ON u.id = rv.user_id
+            WHERE rv.recipe_id = ?
+            ORDER BY rv.created_at DESC, rv.id DESC`,
+            [recipeId],
+        );
+
+        const reviews = reviewRows.map((row) => ({
+            id: Number(row.id),
+            user_id: Number(row.user_id),
+            nickname: String(row.reviewer_nickname),
+            content: row.content != null ? String(row.content) : null,
+            is_liked: tinyToBool(row.is_liked),
+            emo_1: tinyToBool(row.emo_1),
+            emo_2: tinyToBool(row.emo_2),
+            emo_3: tinyToBool(row.emo_3),
+            created_at: tsIso(row.created_at),
+            updated_at: tsIso(row.updated_at),
+        }));
+
+        res.json({
+            ok: true,
+            id: Number(rrow.id),
+            user_id: Number(rrow.user_id),
+            nickname: rrow.author_nickname != null ? String(rrow.author_nickname) : null,
+            profile_image_url: nullableUrl(rrow.author_profile_image_url),
+            recipe_image_url: nullableUrl(rrow.image_url),
+            recipe_name: deriveRecipeName(rrow.refined_text),
+            created_at: {
+                year: Number(rrow.y),
+                month: Number(rrow.m),
+                day: Number(rrow.d),
+            },
+            like_count: Number(rrow.like_count),
+            refined_text: rrow.refined_text != null ? String(rrow.refined_text) : null,
+            raw_text: rrow.raw_text != null ? String(rrow.raw_text) : null,
+            reviews,
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
 /** POST /api/recipes { raw_text?, refined_text?, image_url? } — 선택 Authorization: Bearer (audio는 프론트 mock) */
 router.post('/', async (req, res) => {
     const pool = getPool();

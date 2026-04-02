@@ -234,6 +234,28 @@
         }
       }
     },
+    "/api/recipes/{recipeId}": {
+      "get": {
+        "tags": ["Recipe"],
+        "summary": "레시피 상세 (썸네일·이름·작성일·좋아요·원문·정제문·리뷰 전체)",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok — id, user_id, nickname, profile_image_url, recipe_image_url, recipe_name, created_at{year,month,day}, like_count, refined_text, raw_text, reviews[] (id, user_id, nickname, content, is_liked, emo_1~3, created_at, updated_at ISO)"
+          },
+          "400": { "description": "잘못된 recipeId" },
+          "404": { "description": "레시피 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes": {
       "post": {
         "tags": ["Recipe"],
