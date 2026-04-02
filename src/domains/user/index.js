@@ -1,42 +1,8 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
+const { resolveUserId } = require('../../shared/resolveUserId');
 const { getPool } = require('../database/mysqlPool');
 
 const router = express.Router();
-
-/** Authorization: Bearer … 또는 JWT만 (레시피 API와 동일) */
-function extractBearerToken(headerValue) {
-    if (!headerValue || typeof headerValue !== 'string') {
-        return null;
-    }
-    const v = headerValue.trim();
-    const m = v.match(/^Bearer\s+(\S+)/i);
-    if (m) {
-        return m[1].trim() || null;
-    }
-    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)) {
-        return v;
-    }
-    return null;
-}
-
-function resolveUserId(req) {
-    const token = extractBearerToken(req.headers.authorization);
-    if (!token) {
-        return 1;
-    }
-    try {
-        const p = jwt.verify(token, config.jwtSecret);
-        const raw = p && (p.id != null ? p.id : p.user_id);
-        if (raw != null && Number.isFinite(Number(raw)) && Number(raw) > 0) {
-            return Number(raw);
-        }
-    } catch (_) {
-        /* 무효·만료 토큰 */
-    }
-    return 1;
-}
 
 /**
  * GET /api/users/following — 내가 구독 중인 유저 최대 20명 (구독한 순서 최신). JWT 없으면 follower 1

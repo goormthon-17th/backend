@@ -250,23 +250,16 @@
           {
             "name": "q",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": { "type": "string" },
-            "description": "검색어 (keyword 와 동일 의미, 둘 중 하나 필수)"
-          },
-          {
-            "name": "keyword",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "string" },
-            "description": "검색어 (q 와 동일)"
+            "description": "검색 키워드"
           }
         ],
         "responses": {
           "200": {
             "description": "ok, recipes[] — /latest 와 동일 필드"
           },
-          "400": { "description": "q·keyword 없음 또는 너무 김" },
+          "400": { "description": "q 없음 또는 너무 김" },
           "503": { "description": "DB 미설정" }
         }
       }
@@ -467,7 +460,7 @@
     "/api/voice": {
       "post": {
         "tags": ["Voice"],
-        "summary": "음성 → STT → 정제 → TTS; 선택 image_url(텍스트 필드) 전달 시 Gemini 입력에 포함·응답에 에코",
+        "summary": "음성 → STT → 정제 → TTS; image_url 있으면 절대 URL로 정규화 후 recipe 저장·응답 에코",
         "requestBody": {
           "required": true,
           "content": {
@@ -483,7 +476,7 @@
                   },
                   "image_url": {
                     "type": "string",
-                    "description": "선택 — 업로드된 이미지 공개 URL (http/https). imageUrl 별칭 동일"
+                    "description": "선택 — https URL 또는 /uploads/... 경로. PUBLIC_BASE_URL(기본 goormthon 호스트)로 절대 URL 합성·DB 저장"
                   }
                 }
               }
@@ -492,14 +485,15 @@
         },
         "responses": {
           "200": {
-            "description": "multipart — text, 요청 시 image_url 에코, audio(WAV) 또는 tts_error",
+            "description": "multipart — text, image_url(절대 URL), recipe_id(DB 저장 성공 시), audio 또는 tts_error",
             "content": {
               "multipart/form-data": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "text": { "type": "string" },
-                    "image_url": { "type": "string", "description": "요청에 넣었을 때만" },
+                    "image_url": { "type": "string", "description": "브라우저에서 바로 로드 가능한 https URL" },
+                    "recipe_id": { "type": "string", "description": "recipe 행 id (저장 실패 시 생략)" },
                     "audio": { "type": "string", "format": "binary", "description": "WAV" },
                     "tts_error": { "type": "string" }
                   }

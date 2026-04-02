@@ -1,46 +1,8 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
+const { resolveUserId } = require('../../shared/resolveUserId');
 const { getPool } = require('../database/mysqlPool');
 
 const router = express.Router();
-
-/**
- * JWT 페이로드: 로그인 응답과 동일하게 { id, login_id, ... } — recipe.user_id 컬럼에는 id 값 사용
- * Authorization: `Bearer <token>` 또는 Swagger 파라미터에 토큰만 넣은 경우 `<token>` 단독도 허용
- */
-function extractBearerToken(headerValue) {
-    if (!headerValue || typeof headerValue !== 'string') {
-        return null;
-    }
-    const v = headerValue.trim();
-    const m = v.match(/^Bearer\s+(\S+)/i);
-    if (m) {
-        return m[1].trim() || null;
-    }
-    // Swagger Try it out에서 JWT만 붙여넣으면 "Bearer " 없이 옴
-    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)) {
-        return v;
-    }
-    return null;
-}
-
-function resolveUserId(req) {
-    const token = extractBearerToken(req.headers.authorization);
-    if (!token) {
-        return 1;
-    }
-    try {
-        const p = jwt.verify(token, config.jwtSecret);
-        const raw = p && (p.id != null ? p.id : p.user_id);
-        if (raw != null && Number.isFinite(Number(raw)) && Number(raw) > 0) {
-            return Number(raw);
-        }
-    } catch (_) {
-        /* 무효·만료 토큰 → 비로그인과 동일 */
-    }
-    return 1;
-}
 
 /** refined_text에 제목 줄이 없으면 첫 비어 있지 않은 줄에서 표시용 이름 추출 */
 function deriveRecipeName(refinedText) {
@@ -206,7 +168,7 @@ router.get('/liked', async (req, res) => {
 });
 
 /**
- * GET /api/recipes/search?q= 또는 keyword=
+ * GET /api/recipes/search?q=
  * 표시용 이름(recipe_name)이 검색어와 일치: 연속 문자열 포함 또는(공백 제외) 한 글자라도 포함. 응답 형태는 /latest 와 동일
  */
 router.get('/search', async (req, res) => {
@@ -216,20 +178,20 @@ router.get('/search', async (req, res) => {
         return;
     }
 
-    const raw = req.query.q != null ? req.query.q : req.query.keyword;
+    const raw = req.query.q;
     const keyword = raw != null ? String(raw).trim() : '';
     if (!keyword) {
-        res.status(400).json({ ok: false, error: 'query param q or keyword is required' });
+        res.status(400).json({ ok: false, error: 'query param q is required' });
         return;
     }
     if (keyword.length > 200) {
-        res.status(400).json({ ok: false, error: 'keyword too long' });
+        res.status(400).json({ ok: false, error: 'q too long' });
         return;
     }
 
     const uniqChars = [...new Set(Array.from(keyword.replace(/\s/g, '')))].slice(0, 80);
     if (!uniqChars.length) {
-        res.json({ ok: true, recipes: [], keyword });
+        res.json({ ok: true, recipes: [] });
         return;
     }
 

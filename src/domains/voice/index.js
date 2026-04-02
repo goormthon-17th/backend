@@ -1,6 +1,9 @@
 const express = require('express');
 const multer = require('multer');
 const { generateFromText } = require('../ai/geminiService');
+const { getPool } = require('../database/mysqlPool');
+const { resolveUserId } = require('../../shared/resolveUserId');
+const { normalizePublicImageUrl } = require('../../shared/imageUrl');
 const { synthesizeToWav } = require('./geminiTts');
 const { buildMultipartVoiceBody } = require('./multipartVoiceResponse');
 const { transcribeWithClova } = require('./clovaStt');
@@ -53,10 +56,14 @@ router.post('/', runSingleAudio, async (req, res) => {
     }
 
     const imageUrlIn = parseOptionalImageUrl(req);
-    if (imageUrlIn && !/^https?:\/\//i.test(imageUrlIn)) {
-        res.status(400).type('text/plain; charset=utf-8').send('image_url must start with http:// or https://');
+    if (imageUrlIn && !/^https?:\/\//i.test(imageUrlIn) && !imageUrlIn.startsWith('/')) {
+        res.status(400)
+            .type('text/plain; charset=utf-8')
+            .send('image_url must be http(s) URL or absolute path starting with /');
         return;
     }
+
+    const imageUrlAbsolute = imageUrlIn ? normalizePublicImageUrl(imageUrlIn) : '';
 
     const stt = await transcribeWithClova({
         buffer: file.buffer,
@@ -70,14 +77,31 @@ router.post('/', runSingleAudio, async (req, res) => {
     }
 
     const textForRefine =
-        imageUrlIn !== ''
-            ? `${stt.text}\n\n[사용자 제공 레시피/음식 이미지 URL]\n${imageUrlIn}`
+        imageUrlAbsolute !== ''
+            ? `${stt.text}\n\n[사용자 제공 레시피/음식 이미지 URL]\n${imageUrlAbsolute}`
             : stt.text;
 
     const refined = await generateFromText(textForRefine);
     if (!refined.ok) {
         res.status(refined.status).type('text/plain; charset=utf-8').send(refined.error);
         return;
+    }
+
+    let savedRecipeId = null;
+    if (imageUrlAbsolute) {
+        const pool = getPool();
+        if (pool) {
+            try {
+                const userId = resolveUserId(req);
+                const [ins] = await pool.execute(
+                    'INSERT INTO recipe (user_id, raw_text, refined_text, image_url) VALUES (?, ?, ?, ?)',
+                    [userId, stt.text, refined.text, imageUrlAbsolute],
+                );
+                savedRecipeId = ins.insertId || null;
+            } catch (e) {
+                console.error('[voice] recipe insert:', e.message || e);
+            }
+        }
     }
 
     const tts = await synthesizeToWav(refined.text);
@@ -87,7 +111,8 @@ router.post('/', runSingleAudio, async (req, res) => {
         refined.text,
         wavBuf,
         ttsErr,
-        imageUrlIn || null,
+        imageUrlAbsolute || null,
+        savedRecipeId,
     );
 
     res.status(200).setHeader('Content-Type', `multipart/form-data; boundary=${boundary}`);
