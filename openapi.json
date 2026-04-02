@@ -12,7 +12,8 @@
     { "name": "Database", "description": "MySQL" },
     { "name": "Health", "description": "헬스" },
     { "name": "Auth", "description": "회원" },
-    { "name": "Recipe", "description": "레시피" }
+    { "name": "Recipe", "description": "레시피" },
+    { "name": "User", "description": "유저 프로필" }
   ],
   "paths": {
     "/api": {
@@ -112,6 +113,28 @@
         }
       }
     },
+    "/api/users/{userId}": {
+      "get": {
+        "tags": ["User"],
+        "summary": "유저 프로필 요약 (닉네임, 레시피 수, 레시피 좋아요 합계, 구독 중인 사용자 수)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok, user_id, nickname, recipe_count, recipe_likes_total, following_count"
+          },
+          "400": { "description": "잘못된 userId" },
+          "404": { "description": "user 없음" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes/latest": {
       "get": {
         "tags": ["Recipe"],
@@ -181,7 +204,6 @@
                 "properties": {
                   "raw_text": { "type": "string" },
                   "refined_text": { "type": "string" },
-                  "audio_url": { "type": "string" },
                   "image_url": { "type": "string" }
                 }
               }
@@ -227,18 +249,16 @@
     "/api/ai/generate": {
       "post": {
         "tags": ["AI"],
-        "summary": "STT 원문 → 레시피 카드 (서버 고정 프롬프트). image_url·audio_url 필수 — 응답에 그대로 포함되어 POST /api/recipes에 재사용 가능",
+        "summary": "STT 원문 → 레시피 카드 (서버 고정 프롬프트)",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["text", "image_url", "audio_url"],
+                "required": ["text"],
                 "properties": {
-                  "text": { "type": "string", "description": "STT 원문" },
-                  "image_url": { "type": "string", "description": "레시피 이미지 URL (recipe.image_url)" },
-                  "audio_url": { "type": "string", "description": "음성 URL (recipe.audio_url)" }
+                  "text": { "type": "string" }
                 }
               }
             }
@@ -253,9 +273,7 @@
                   "type": "object",
                   "properties": {
                     "ok": { "type": "boolean" },
-                    "resultText": { "type": "string" },
-                    "image_url": { "type": "string" },
-                    "audio_url": { "type": "string" }
+                    "resultText": { "type": "string" }
                   }
                 }
               }

@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS recipe (
     user_id BIGINT UNSIGNED NOT NULL,
     raw_text TEXT,
     refined_text TEXT,
-    audio_url VARCHAR(2048),
     image_url VARCHAR(2048),
     like_count INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

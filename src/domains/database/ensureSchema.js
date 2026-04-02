@@ -17,7 +17,6 @@ const TABLE_DDLS = [
     user_id BIGINT UNSIGNED NOT NULL,
     raw_text TEXT,
     refined_text TEXT,
-    audio_url VARCHAR(2048),
     image_url VARCHAR(2048),
     like_count INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -57,7 +56,15 @@ async function ensureSchema() {
         await pool.query(sql);
     }
     try {
-        await pool.query('ALTER TABLE recipe ADD COLUMN image_url VARCHAR(2048) NULL AFTER audio_url');
+        await pool.query('ALTER TABLE recipe DROP COLUMN audio_url');
+    } catch (e) {
+        const gone = e.errno === 1091 || e.code === 'ER_CANT_DROP_FIELD_OR_KEY';
+        if (!gone) {
+            throw e;
+        }
+    }
+    try {
+        await pool.query('ALTER TABLE recipe ADD COLUMN image_url VARCHAR(2048) NULL AFTER refined_text');
     } catch (e) {
         if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) {
             throw e;

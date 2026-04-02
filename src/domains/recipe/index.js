@@ -157,7 +157,7 @@ router.get('/user/:userId', async (req, res) => {
     }
 });
 
-/** POST /api/recipes { raw_text?, refined_text?, audio_url?, image_url? } — 선택 Authorization: Bearer */
+/** POST /api/recipes { raw_text?, refined_text?, image_url? } — 선택 Authorization: Bearer (audio는 프론트 mock) */
 router.post('/', async (req, res) => {
     const pool = getPool();
     if (!pool) {
@@ -168,15 +168,14 @@ router.post('/', async (req, res) => {
     const body = req.body || {};
     const rawText = body.raw_text != null ? String(body.raw_text) : null;
     const refinedText = body.refined_text != null ? String(body.refined_text) : null;
-    const audioUrl = body.audio_url != null ? String(body.audio_url) : null;
     const imageUrl = body.image_url != null ? String(body.image_url) : null;
 
     const userId = resolveUserId(req);
 
     try {
         const [r] = await pool.execute(
-            'INSERT INTO recipe (user_id, raw_text, refined_text, audio_url, image_url) VALUES (?, ?, ?, ?, ?)',
-            [userId, rawText, refinedText, audioUrl, imageUrl],
+            'INSERT INTO recipe (user_id, raw_text, refined_text, image_url) VALUES (?, ?, ?, ?)',
+            [userId, rawText, refinedText, imageUrl],
         );
         const insertId = r.insertId;
         res.status(201).json({
