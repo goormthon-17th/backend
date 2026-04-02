@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 const swaggerUi = require('swagger-ui-express');
 
@@ -28,6 +29,20 @@ function getPool() {
 }
 
 const app = express();
+
+const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+    : true;
+app.use(
+    cors({
+        origin: corsOrigins,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    }),
+);
+
 app.use(express.json());
 
 app.use(
