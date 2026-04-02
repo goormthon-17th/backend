@@ -2,11 +2,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../../config');
 const { buildGeneratePrompt } = require('./refinePrompt');
 
-/**
- * @param {string} rawText
- * @param {string|undefined|null} clientInstruction
- */
-async function generateFromText(rawText, clientInstruction) {
+/** @param {string} rawText */
+async function generateFromText(rawText) {
     const apiKey = process.env.GEMINI_API_KEY || config.defaultGeminiApiKey;
     if (!apiKey) {
         return {
@@ -18,7 +15,7 @@ async function generateFromText(rawText, clientInstruction) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: config.geminiModel });
-        const prompt = buildGeneratePrompt(rawText, clientInstruction);
+        const prompt = buildGeneratePrompt(rawText);
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         return { ok: true, text };

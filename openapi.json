@@ -58,7 +58,7 @@
     "/api/ai/generate": {
       "post": {
         "tags": ["AI"],
-        "summary": "STT 원문 → 레시피 카드 (instruction 생략 시 서버 기본 프롬프트)",
+        "summary": "STT 원문 → 레시피 카드 (서버 고정 프롬프트)",
         "requestBody": {
           "required": true,
           "content": {
@@ -67,11 +67,7 @@
                 "type": "object",
                 "required": ["text"],
                 "properties": {
-                  "text": { "type": "string" },
-                  "instruction": {
-                    "type": "string",
-                    "description": "선택. 없으면 서버 기본 지시문"
-                  }
+                  "text": { "type": "string" }
                 }
               }
             }

@@ -1,6 +1,4 @@
-/**
- * 서버 기본 지시문(프론트에서 instruction 안 보낼 때만 사용). 비우면 클라이언트 instruction도 없을 때 원문만 모델에 전달.
- */
+/** 서버 고정 시스템 프롬프트(STT → 레시피 카드). 비우면 입력 원문만 모델에 전달. */
 const SERVER_DEFAULT_INSTRUCTION = `[Role]
 너는 제주 방언 구술 데이터를 현대식 표준 요리 레시피 카드로 변환하는 **'제주 향토 음식 아카이브 전문가'**야.
 
@@ -40,17 +38,11 @@ const SERVER_DEFAULT_INSTRUCTION = `[Role]
 
 /**
  * @param {string} rawText
- * @param {string|undefined|null} clientInstruction 프론트에서 보낸 지시문(우선)
  * @returns {string} Gemini에 보낼 전체 프롬프트
  */
-function buildGeneratePrompt(rawText, clientInstruction) {
-    const fromClient =
-        typeof clientInstruction === 'string' && clientInstruction.trim() !== ''
-            ? clientInstruction.trim()
-            : '';
-    const fromServer =
+function buildGeneratePrompt(rawText) {
+    const instruction =
         typeof SERVER_DEFAULT_INSTRUCTION === 'string' ? SERVER_DEFAULT_INSTRUCTION.trim() : '';
-    const instruction = fromClient || fromServer;
     if (!instruction) {
         return rawText;
     }
