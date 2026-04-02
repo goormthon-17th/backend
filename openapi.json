@@ -438,7 +438,7 @@
     "/api/voice": {
       "post": {
         "tags": ["Voice"],
-        "summary": "음성 → STT → 정제 → TTS; 성공 응답은 multipart (필드 text, audio wav 파일)",
+        "summary": "음성 → STT → 정제 → TTS; 선택 image_url(텍스트 필드) 전달 시 Gemini 입력에 포함·응답에 에코",
         "requestBody": {
           "required": true,
           "content": {
@@ -451,6 +451,10 @@
                     "type": "string",
                     "format": "binary",
                     "description": "음성 바이너리 (예: audio/webm, audio/wav)"
+                  },
+                  "image_url": {
+                    "type": "string",
+                    "description": "선택 — 업로드된 이미지 공개 URL (http/https). imageUrl 별칭 동일"
                   }
                 }
               }
@@ -459,13 +463,14 @@
         },
         "responses": {
           "200": {
-            "description": "multipart/form-data — name=text(정제 문자열), name=audio(filename recipe.wav, audio/wav). TTS 실패 시 audio 없음, name=tts_error",
+            "description": "multipart — text, 요청 시 image_url 에코, audio(WAV) 또는 tts_error",
             "content": {
               "multipart/form-data": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "text": { "type": "string" },
+                    "image_url": { "type": "string", "description": "요청에 넣었을 때만" },
                     "audio": { "type": "string", "format": "binary", "description": "WAV" },
                     "tts_error": { "type": "string" }
                   }
@@ -473,7 +478,7 @@
               }
             }
           },
-          "400": { "description": "audio 없음 등 — text/plain 오류 메시지" },
+          "400": { "description": "audio 없음, image_url 형식 오류 등 — text/plain" },
           "413": { "description": "용량 초과 — text/plain" },
           "502": { "description": "Clova/Gemini 오류 — text/plain 메시지" },
           "503": { "description": "환경변수 미설정 — text/plain 메시지" }

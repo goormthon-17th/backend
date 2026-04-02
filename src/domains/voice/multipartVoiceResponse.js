@@ -5,8 +5,9 @@ const crypto = require('crypto');
  * @param {string} text — 정제 텍스트
  * @param {Buffer | null} wavBuffer — TTS WAV (없으면 audio 파트 생략)
  * @param {string | null} ttsError — TTS 실패 시 사유 (선택 필드 tts_error)
+ * @param {string | null} imageUrl — 요청에서 받은 이미지 URL 에코 (선택 필드 image_url)
  */
-function buildMultipartVoiceBody(text, wavBuffer, ttsError) {
+function buildMultipartVoiceBody(text, wavBuffer, ttsError, imageUrl) {
     const boundary = `----VoiceOut${crypto.randomBytes(16).toString('hex')}`;
     const chunks = [];
 
@@ -20,6 +21,20 @@ function buildMultipartVoiceBody(text, wavBuffer, ttsError) {
         Buffer.from(text, 'utf8'),
         Buffer.from('\r\n', 'utf8'),
     );
+
+    const urlEcho = imageUrl != null && String(imageUrl).trim() !== '' ? String(imageUrl).trim() : '';
+    if (urlEcho) {
+        chunks.push(
+            Buffer.from(
+                `--${boundary}\r\n` +
+                    `Content-Disposition: form-data; name="image_url"\r\n` +
+                    `Content-Type: text/plain; charset=utf-8\r\n\r\n`,
+                'utf8',
+            ),
+            Buffer.from(urlEcho, 'utf8'),
+            Buffer.from('\r\n', 'utf8'),
+        );
+    }
 
     if (wavBuffer && wavBuffer.length > 0) {
         chunks.push(
