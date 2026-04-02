@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+const { generateFromText } = require('../ai/geminiService');
 const { transcribeWithClova } = require('./clovaStt');
 
 const router = express.Router();
@@ -16,14 +17,10 @@ function runSingleAudio(req, res, next) {
         if (err) {
             if (err instanceof multer.MulterError) {
                 if (err.code === 'LIMIT_FILE_SIZE') {
-                    res.status(413).json({
-                        ok: false,
-                        error: 'file too large',
-                        limitBytes: MAX_BYTES,
-                    });
+                    res.status(413).type('text/plain; charset=utf-8').send('file too large');
                     return;
                 }
-                res.status(400).json({ ok: false, error: err.message, code: err.code });
+                res.status(400).type('text/plain; charset=utf-8').send(err.message);
                 return;
             }
             next(err);
@@ -34,16 +31,13 @@ function runSingleAudio(req, res, next) {
 }
 
 /**
- * POST /api/voice — multipart/form-data, 필드명 `audio`에 음성 파일 1개
- * Clova Speech (`NEXT_PUBLIC_CLOVA_*`)로 STT 후 `text` 반환
+ * POST /api/voice — multipart/form-data, 필드명 `audio`
+ * Clova STT → Gemini(refinePrompt) 정제 후 200 본문은 정제 텍스트만 (text/plain)
  */
 router.post('/', runSingleAudio, async (req, res) => {
     const file = req.file;
     if (!file) {
-        res.status(400).json({
-            ok: false,
-            error: 'multipart field "audio" (single file) is required',
-        });
+        res.status(400).type('text/plain; charset=utf-8').send('multipart field "audio" (single file) is required');
         return;
     }
 
@@ -54,21 +48,17 @@ router.post('/', runSingleAudio, async (req, res) => {
     });
 
     if (!stt.ok) {
-        const body = { ok: false, error: stt.error };
-        if (stt.raw !== undefined) {
-            body.clova = stt.raw;
-        }
-        res.status(stt.status).json(body);
+        res.status(stt.status).type('text/plain; charset=utf-8').send(stt.error);
         return;
     }
 
-    res.status(200).json({
-        ok: true,
-        text: stt.text,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-    });
+    const refined = await generateFromText(stt.text);
+    if (!refined.ok) {
+        res.status(refined.status).type('text/plain; charset=utf-8').send(refined.error);
+        return;
+    }
+
+    res.status(200).type('text/plain; charset=utf-8').send(refined.text);
 });
 
 module.exports = router;

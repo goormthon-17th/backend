@@ -409,7 +409,7 @@
     "/api/voice": {
       "post": {
         "tags": ["Voice"],
-        "summary": "음성 업로드 → NCP Clova STT → 인식 텍스트 반환 (.env: NEXT_PUBLIC_CLOVA_INVOKE_URL, NEXT_PUBLIC_CLOVA_SECRET_KEY)",
+        "summary": "음성 → STT → Gemini 정제, 성공 시 본문은 정제 텍스트만 (text/plain)",
         "requestBody": {
           "required": true,
           "content": {
@@ -430,26 +430,17 @@
         },
         "responses": {
           "200": {
-            "description": "STT 성공 — text(제주어 교정 적용), 파일 메타데이터",
+            "description": "정제된 레시피 카드 문자열만 (Content-Type: text/plain; charset=utf-8)",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "text": { "type": "string" },
-                    "originalName": { "type": "string" },
-                    "mimeType": { "type": "string" },
-                    "size": { "type": "integer" }
-                  }
-                }
+              "text/plain": {
+                "schema": { "type": "string" }
               }
             }
           },
-          "400": { "description": "audio 필드 없음 또는 multer 오류" },
-          "413": { "description": "파일 크기 초과 (기본 30MB, VOICE_UPLOAD_MAX_BYTES로 조정)" },
-          "502": { "description": "Clova 호출 실패 또는 비 JSON 응답" },
-          "503": { "description": "Clova 환경변수 미설정" }
+          "400": { "description": "audio 없음 등 — text/plain 오류 메시지" },
+          "413": { "description": "용량 초과 — text/plain" },
+          "502": { "description": "Clova/Gemini 오류 — text/plain 메시지" },
+          "503": { "description": "환경변수 미설정 — text/plain 메시지" }
         }
       }
     }
