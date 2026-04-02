@@ -9,7 +9,8 @@ const server = http.createServer((req, res) => {
     const url = req.url || '/';
     const pathname = url.split('?')[0];
 
-    if (pathname === '/test') {
+    // Ingress는 /api 프리픽스만 넘기므로 외부에서는 /api/test 로 접근
+    if (pathname === '/api/test') {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
             JSON.stringify({
