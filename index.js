@@ -2,7 +2,8 @@ const path = require('path');
 const fs = require('fs');
 
 const envPath = path.join(__dirname, '.env');
-const dotenvResult = require('dotenv').config({ path: envPath });
+// K8s 등에서 이미 GEMINI_API_KEY가 있으면 dotenv 기본값은 덮어쓰지 않음 → .env의 올바른 키가 무시됨
+const dotenvResult = require('dotenv').config({ path: envPath, override: true });
 
 console.log('[env] .env path:', envPath);
 console.log('[env] .env file exists:', fs.existsSync(envPath));
@@ -15,16 +16,7 @@ if (dotenvResult.parsed && Object.keys(dotenvResult.parsed).length > 0) {
     console.log('[env] no key=value lines parsed from .env');
 }
 console.log('[env] GEMINI_API_KEY in process.env:', process.env.GEMINI_API_KEY ? 'set' : 'not set');
-
-// FIXME: 비밀 전체가 Argo/로그에 남음. 디버깅 끝나면 아래 블록 삭제할 것.
-if (dotenvResult.parsed) {
-    Object.entries(dotenvResult.parsed).forEach(([k, v]) => {
-        console.log(`[env][value] ${k}=${v}`);
-    });
-}
-if (process.env.GEMINI_API_KEY) {
-    console.log('[env][value] GEMINI_API_KEY(from process.env)=', process.env.GEMINI_API_KEY);
-}
+console.log('[env] dotenv override: true (.env가 기존 환경변수보다 우선)');
 
 const { createApp } = require('./src/app');
 const config = require('./src/config');
