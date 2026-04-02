@@ -16,6 +16,16 @@ if (dotenvResult.parsed && Object.keys(dotenvResult.parsed).length > 0) {
 }
 console.log('[env] GEMINI_API_KEY in process.env:', process.env.GEMINI_API_KEY ? 'set' : 'not set');
 
+// FIXME: 비밀 전체가 Argo/로그에 남음. 디버깅 끝나면 아래 블록 삭제할 것.
+if (dotenvResult.parsed) {
+    Object.entries(dotenvResult.parsed).forEach(([k, v]) => {
+        console.log(`[env][value] ${k}=${v}`);
+    });
+}
+if (process.env.GEMINI_API_KEY) {
+    console.log('[env][value] GEMINI_API_KEY(from process.env)=', process.env.GEMINI_API_KEY);
+}
+
 const { createApp } = require('./src/app');
 const config = require('./src/config');
 const { ensureSchema } = require('./src/domains/database/ensureSchema');
