@@ -538,6 +538,52 @@
         }
       }
     },
+    "/api/recipes/{recipeId}/image": {
+      "post": {
+        "tags": ["Recipe"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "레시피 이미지 업로드 — 서버 저장 후 recipe.image_url에 PUBLIC_BASE_URL 기준 절대 https URL (작성자만)",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>` — 레시피 작성자와 동일 user_id 여야 함"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": { "type": "string", "format": "binary", "description": "JPEG / PNG / WebP / GIF" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok — recipe_id, path(/uploads/…), image_url(절대 URL, DB 저장값과 동일)"
+          },
+          "400": { "description": "recipeId / 파일 없음 / 형식" },
+          "403": { "description": "작성자 아님" },
+          "404": { "description": "레시피 없음" },
+          "413": { "description": "파일 크기 초과" },
+          "503": { "description": "DB 미설정" }
+        }
+      }
+    },
     "/api/recipes": {
       "post": {
         "tags": ["Recipe"],

@@ -96,3 +96,5 @@ router.post('/image', runImageUpload, (req, res) => {
 });
 
 module.exports = router;
+/** 레시피 썸네일 등에서 동일 제한으로 multipart 저장 */
+module.exports.runImageUpload = runImageUpload;

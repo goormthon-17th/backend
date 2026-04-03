@@ -1,7 +1,9 @@
 const express = require('express');
+const config = require('../../config');
 const { resolveUserId } = require('../../shared/resolveUserId');
 const { normalizePublicImageUrl } = require('../../shared/imageUrl');
 const { getPool } = require('../database/mysqlPool');
+const { runImageUpload } = require('../upload');
 
 const router = express.Router();
 
@@ -408,6 +410,55 @@ router.post('/:recipeId/reviews', async (req, res) => {
             res.status(400).json({ ok: false, error: 'invalid user_id (user not found)' });
             return;
         }
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
+/**
+ * POST /api/recipes/:recipeId/image — multipart 필드 `image` 저장 후 recipe.image_url 에 절대 URL 저장 (작성자만)
+ */
+router.post('/:recipeId/image', runImageUpload, async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const recipeId = Number(req.params.recipeId);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid recipeId' });
+        return;
+    }
+
+    if (!req.file) {
+        res.status(400).json({ ok: false, error: 'multipart field "image" (single file) is required' });
+        return;
+    }
+
+    const publicPath = `${config.uploadsPublicPath}/${req.file.filename}`.replace(/\/+/g, '/');
+    const imageUrlAbsolute = normalizePublicImageUrl(publicPath);
+    const userId = resolveUserId(req);
+
+    try {
+        const [rows] = await pool.execute('SELECT user_id FROM recipe WHERE id = ? LIMIT 1', [recipeId]);
+        if (!rows.length) {
+            res.status(404).json({ ok: false, error: 'recipe not found' });
+            return;
+        }
+        if (Number(rows[0].user_id) !== userId) {
+            res.status(403).json({ ok: false, error: 'only the recipe author can upload image' });
+            return;
+        }
+
+        await pool.execute('UPDATE recipe SET image_url = ? WHERE id = ?', [imageUrlAbsolute, recipeId]);
+
+        res.status(200).json({
+            ok: true,
+            recipe_id: recipeId,
+            path: publicPath,
+            image_url: imageUrlAbsolute,
+        });
+    } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
     }
 });
