@@ -1,5 +1,6 @@
 const express = require('express');
 const { resolveUserId } = require('../../shared/resolveUserId');
+const { normalizePublicImageUrl } = require('../../shared/imageUrl');
 const { getPool } = require('../database/mysqlPool');
 
 const router = express.Router();
@@ -28,6 +29,31 @@ function deriveRecipeName(refinedText) {
     }
     const n = stripBold(first.replace(/^\d+\.\s*/, ''));
     return n || null;
+}
+
+/** refined_text 안의 표시용 제목만 바꿈 — "레시피 제목:" 줄이 있으면 그 줄, 없으면 첫 비어 있지 않은 줄 */
+function applyRecipeNameToRefinedText(refinedText, newName) {
+    const name = String(newName).trim();
+    if (!name) {
+        return refinedText == null ? '' : String(refinedText);
+    }
+    const s = refinedText != null ? String(refinedText) : '';
+    if (!s.trim()) {
+        return `레시피 제목: ${name}`;
+    }
+    const lines = s.split(/\r?\n/);
+    const titleIdx = lines.findIndex((line) => /레시피\s*제목\s*[:：]/i.test(line));
+    if (titleIdx >= 0) {
+        lines[titleIdx] = `레시피 제목: ${name}`;
+        return lines.join('\n');
+    }
+    for (let i = 0; i < lines.length; i += 1) {
+        if (lines[i].trim()) {
+            lines[i] = name;
+            return lines.join('\n');
+        }
+    }
+    return `레시피 제목: ${name}\n${s}`;
 }
 
 function nullableUrl(v) {
@@ -447,6 +473,102 @@ router.get('/:recipeId', async (req, res) => {
             refined_text: rrow.refined_text != null ? String(rrow.refined_text) : null,
             raw_text: rrow.raw_text != null ? String(rrow.raw_text) : null,
             reviews,
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+});
+
+/**
+ * PATCH /api/recipes/:recipeId — 본인 레시피만. body에 온 필드만 갱신 (최소 1개)
+ * image_url?, raw_text?, refined_text?, recipe_name? | name? (이름은 refined_text 내 제목 줄·첫 줄에 반영)
+ */
+router.patch('/:recipeId', async (req, res) => {
+    const pool = getPool();
+    if (!pool) {
+        res.status(503).json({ ok: false, error: 'MYSQL_* env not set' });
+        return;
+    }
+
+    const recipeId = Number(req.params.recipeId);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+        res.status(400).json({ ok: false, error: 'invalid recipeId' });
+        return;
+    }
+
+    const body = req.body || {};
+    const hasImage = Object.prototype.hasOwnProperty.call(body, 'image_url');
+    const hasRaw = Object.prototype.hasOwnProperty.call(body, 'raw_text');
+    const hasRefined = Object.prototype.hasOwnProperty.call(body, 'refined_text');
+    const nameRaw = body.recipe_name !== undefined ? body.recipe_name : body.name;
+    const hasName = nameRaw !== undefined && nameRaw !== null;
+
+    if (!hasImage && !hasRaw && !hasRefined && !hasName) {
+        res.status(400).json({
+            ok: false,
+            error: 'provide at least one of: image_url, raw_text, refined_text, recipe_name (or name)',
+        });
+        return;
+    }
+
+    const userId = resolveUserId(req);
+
+    try {
+        const [rows] = await pool.execute(
+            'SELECT user_id, raw_text, refined_text, image_url FROM recipe WHERE id = ? LIMIT 1',
+            [recipeId],
+        );
+        if (!rows.length) {
+            res.status(404).json({ ok: false, error: 'recipe not found' });
+            return;
+        }
+        if (Number(rows[0].user_id) !== userId) {
+            res.status(403).json({ ok: false, error: 'only the recipe author can update' });
+            return;
+        }
+
+        let rawText = rows[0].raw_text != null ? String(rows[0].raw_text) : null;
+        let refinedText = rows[0].refined_text != null ? String(rows[0].refined_text) : null;
+        let imageUrl = rows[0].image_url != null ? String(rows[0].image_url) : null;
+
+        if (hasRaw) {
+            rawText = body.raw_text != null ? String(body.raw_text) : null;
+        }
+        if (hasRefined) {
+            refinedText = body.refined_text != null ? String(body.refined_text) : null;
+        }
+        if (hasName) {
+            refinedText = applyRecipeNameToRefinedText(refinedText, nameRaw);
+        }
+
+        if (hasImage) {
+            if (body.image_url == null || String(body.image_url).trim() === '') {
+                imageUrl = null;
+            } else {
+                const imageUrlIn = String(body.image_url).trim();
+                if (!/^https?:\/\//i.test(imageUrlIn) && !imageUrlIn.startsWith('/')) {
+                    res.status(400).json({
+                        ok: false,
+                        error: 'image_url must be http(s) URL or absolute path starting with /',
+                    });
+                    return;
+                }
+                imageUrl = normalizePublicImageUrl(imageUrlIn) || null;
+            }
+        }
+
+        await pool.execute(
+            'UPDATE recipe SET raw_text = ?, refined_text = ?, image_url = ? WHERE id = ?',
+            [rawText, refinedText, imageUrl, recipeId],
+        );
+
+        res.json({
+            ok: true,
+            id: recipeId,
+            recipe_name: deriveRecipeName(refinedText),
+            recipe_image_url: nullableUrl(imageUrl),
+            raw_text: rawText,
+            refined_text: refinedText,
         });
     } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });

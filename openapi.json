@@ -441,6 +441,56 @@
           "404": { "description": "레시피 없음" },
           "503": { "description": "DB 미설정" }
         }
+      },
+      "patch": {
+        "tags": ["Recipe"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "레시피 수정 — 작성자만 (JWT 없으면 user_id 1만 id 일치 시 가능)",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "`Bearer <token>`"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "image_url": {
+                    "type": "string",
+                    "description": "http(s) 또는 / 로 시작하는 경로(음성 API와 동일 정규화). 빈 문자열이면 썸네일 제거"
+                  },
+                  "raw_text": { "type": "string", "description": "STT/원문" },
+                  "refined_text": { "type": "string", "description": "정제 본문 전체 교체" },
+                  "recipe_name": { "type": "string", "description": "표시 이름 — refined_text의 '레시피 제목:' 줄 또는 첫 줄 갱신" },
+                  "name": { "type": "string", "description": "recipe_name 별칭" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok — id, recipe_name, recipe_image_url, raw_text, refined_text"
+          },
+          "400": { "description": "recipeId / image_url 형식 / 갱신 필드 없음" },
+          "403": { "description": "작성자 아님" },
+          "404": { "description": "레시피 없음" },
+          "503": { "description": "DB 미설정" }
+        }
       }
     },
     "/api/recipes/{recipeId}/reviews": {
