@@ -1,5 +1,8 @@
 const { getPool } = require('./mysqlPool');
 
+/** 요청 JSON body.code 가 이 값과 같을 때만 TRUNCATE 허용 */
+const CLEAR_BODY_CODE = '1234';
+
 /** 화이트리스트 — 이 이름만 TRUNCATE 허용 */
 const TABLES = {
     user: '`user`',
@@ -9,18 +12,17 @@ const TABLES = {
     user_subscribe: '`user_subscribe`',
 };
 
-function assertClearSecret(req, res) {
-    const secret = process.env.TABLE_CLEAR_SECRET;
-    if (!secret || String(secret).trim() === '') {
-        res.status(503).json({
+function assertClearBody(req, res) {
+    const b = req.body;
+    if (b == null || typeof b !== 'object' || Array.isArray(b)) {
+        res.status(400).json({
             ok: false,
-            error: 'TABLE_CLEAR_SECRET is not set — table clear APIs are disabled',
+            error: 'Send JSON body: { "code": "1234" }',
         });
         return false;
     }
-    const sent = req.get('x-table-clear-secret');
-    if (sent !== secret) {
-        res.status(403).json({ ok: false, error: 'invalid or missing X-Table-Clear-Secret header' });
+    if (String(b.code) !== CLEAR_BODY_CODE) {
+        res.status(403).json({ ok: false, error: 'invalid or missing code' });
         return false;
     }
     return true;
@@ -55,25 +57,25 @@ async function truncateTable(key, res) {
 }
 
 function mountClearRoutes(router) {
-    router.post('/clear/user', async (req, res) => {
-        if (!assertClearSecret(req, res)) return;
-        await truncateTable('user', res);
+    router.post('/clear/user', (req, res) => {
+        if (!assertClearBody(req, res)) return;
+        truncateTable('user', res);
     });
-    router.post('/clear/recipe', async (req, res) => {
-        if (!assertClearSecret(req, res)) return;
-        await truncateTable('recipe', res);
+    router.post('/clear/recipe', (req, res) => {
+        if (!assertClearBody(req, res)) return;
+        truncateTable('recipe', res);
     });
-    router.post('/clear/recipe-like', async (req, res) => {
-        if (!assertClearSecret(req, res)) return;
-        await truncateTable('recipe_like', res);
+    router.post('/clear/recipe-like', (req, res) => {
+        if (!assertClearBody(req, res)) return;
+        truncateTable('recipe_like', res);
     });
-    router.post('/clear/recipe-review', async (req, res) => {
-        if (!assertClearSecret(req, res)) return;
-        await truncateTable('recipe_review', res);
+    router.post('/clear/recipe-review', (req, res) => {
+        if (!assertClearBody(req, res)) return;
+        truncateTable('recipe_review', res);
     });
-    router.post('/clear/user-subscribe', async (req, res) => {
-        if (!assertClearSecret(req, res)) return;
-        await truncateTable('user_subscribe', res);
+    router.post('/clear/user-subscribe', (req, res) => {
+        if (!assertClearBody(req, res)) return;
+        truncateTable('user_subscribe', res);
     });
 }
 

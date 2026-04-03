@@ -11,7 +11,7 @@ function applyCors(app) {
         cors({
             origin: corsOrigins,
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'X-Table-Clear-Secret'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
         }),
     );
 }
