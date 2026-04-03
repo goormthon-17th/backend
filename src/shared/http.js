@@ -11,7 +11,7 @@ function applyCors(app) {
         cors({
             origin: corsOrigins,
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Table-Clear-Secret'],
         }),
     );
 }
@@ -41,6 +41,7 @@ function applyNotFound(app) {
         if (
             pth.startsWith('/api/') &&
             pth !== '/api/db/ping' &&
+            !pth.startsWith('/api/db/clear') &&
             !pth.startsWith('/api/docs') &&
             !pth.startsWith('/api/ai/') &&
             !pth.startsWith('/api/voice') &&

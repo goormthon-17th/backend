@@ -51,6 +51,106 @@
         }
       }
     },
+    "/api/db/clear/user": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "TRUNCATE `user` (FK 잠시 해제). 헤더 X-Table-Clear-Secret = env TABLE_CLEAR_SECRET",
+        "parameters": [
+          {
+            "name": "X-Table-Clear-Secret",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "ok, table: user" },
+          "403": { "description": "시크릿 불일치" },
+          "503": { "description": "TABLE_CLEAR_SECRET 미설정 또는 DB 없음" },
+          "500": { "description": "SQL 오류" }
+        }
+      }
+    },
+    "/api/db/clear/recipe": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "TRUNCATE recipe",
+        "parameters": [
+          {
+            "name": "X-Table-Clear-Secret",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "ok, table: recipe" },
+          "403": { "description": "시크릿 불일치" },
+          "503": { "description": "비활성/DB 없음" },
+          "500": { "description": "SQL 오류" }
+        }
+      }
+    },
+    "/api/db/clear/recipe-like": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "TRUNCATE recipe_like",
+        "parameters": [
+          {
+            "name": "X-Table-Clear-Secret",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "ok, table: recipe_like" },
+          "403": { "description": "시크릿 불일치" },
+          "503": { "description": "비활성/DB 없음" },
+          "500": { "description": "SQL 오류" }
+        }
+      }
+    },
+    "/api/db/clear/recipe-review": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "TRUNCATE recipe_review",
+        "parameters": [
+          {
+            "name": "X-Table-Clear-Secret",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "ok, table: recipe_review" },
+          "403": { "description": "시크릿 불일치" },
+          "503": { "description": "비활성/DB 없음" },
+          "500": { "description": "SQL 오류" }
+        }
+      }
+    },
+    "/api/db/clear/user-subscribe": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "TRUNCATE user_subscribe",
+        "parameters": [
+          {
+            "name": "X-Table-Clear-Secret",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "ok, table: user_subscribe" },
+          "403": { "description": "시크릿 불일치" },
+          "503": { "description": "비활성/DB 없음" },
+          "500": { "description": "SQL 오류" }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": ["Health"],

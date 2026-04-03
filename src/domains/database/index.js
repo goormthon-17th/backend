@@ -1,7 +1,10 @@
 const express = require('express');
 const { getPool } = require('./mysqlPool');
+const { mountClearRoutes } = require('./tableClear');
 
 const router = express.Router();
+
+mountClearRoutes(router);
 
 router.get('/ping', async (req, res) => {
     const p = getPool();
